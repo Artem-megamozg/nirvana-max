@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Nirvana MAX</title>
+
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 480px;
+            padding: 32px;
+            background: #ffffff;
+            border-radius: 24px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        button {
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 24px;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        #status {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>Nirvana MAX 🚀</h1>
+
+    <p id="status">Mini App загружается...</p>
+
+    <button onclick="test()">
+        Проверить
+    </button>
+</div>
+
+<script>
+    const status = document.getElementById("status");
+
+    if (window.WebApp) {
+        status.textContent = "MAX Bridge подключён ✅";
+    } else {
+        status.textContent = "Приложение открыто в браузере";
+    }
+
+    function test() {
+        status.textContent = "Mini App работает ✅";
+    }
+</script>
+
+</body>
+</html>
