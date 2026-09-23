@@ -1,8 +1,11 @@
 // ============================================================
 // App.jsx — корневой компонент мини-приложения Nirvana MAX
 // ============================================================
-// Это каркас. Сюда веб-разработчик будет добавлять экраны,
+// Каркас. Здесь веб-разработчик будет добавлять экраны,
 // навигацию и логику под кейс «Забота о людях».
+//
+// ВАЖНО: alert(), confirm(), prompt() в webview MAX
+// на iOS блокируются — вместо них используем React-состояние.
 // ============================================================
 
 import { useState, useEffect } from 'react'
@@ -10,32 +13,39 @@ import { Panel, Container, Flex, Button, Typography } from '@maxhub/max-ui'
 
 export default function App() {
   // ----------------------------------------------------------
-  // Состояние: информация о пользователе из MAX Bridge
+  // Состояние: данные из MAX Bridge
   // ----------------------------------------------------------
   const [user, setUser] = useState(null)
   const [platform, setPlatform] = useState('unknown')
 
   // ----------------------------------------------------------
-  // useEffect: при загрузке приложения читаем данные из MAX Bridge
+  // Состояние: сообщение под кнопкой (вместо alert)
   // ----------------------------------------------------------
-  // window.WebApp появляется после загрузки max-web-app.js.
-  // Если приложение открыто не в MAX (например, в браузере),
-  // window.WebApp может быть undefined — это нормально.
+  const [message, setMessage] = useState('')
+
+  // ----------------------------------------------------------
+  // Состояние: счётчик нажатий — для проверки, что клик доходит
+  // ----------------------------------------------------------
+  const [count, setCount] = useState(0)
+
+  // ----------------------------------------------------------
+  // useEffect: читаем данные из MAX Bridge при загрузке
   // ----------------------------------------------------------
   useEffect(() => {
     if (window.WebApp) {
-      // initDataUnsafe — объект с данными пользователя (id, имя, язык)
-      // Документация: https://dev.max.ru/docs/webapps/bridge
       setUser(window.WebApp.initDataUnsafe?.user || null)
       setPlatform(window.WebApp.platform || 'unknown')
+    } else {
+      setPlatform('браузер (WebApp не загружен)')
     }
   }, [])
 
   // ----------------------------------------------------------
-  // Обработчик кнопки — заглушка для проверки
+  // Обработчик кнопки — обновляем состояние, не alert
   // ----------------------------------------------------------
   const handleTest = () => {
-    alert('Кнопка работает!')
+    setCount((c) => c + 1)
+    setMessage(`Кнопка работает! Нажатий: ${count + 1}`)
   }
 
   // ----------------------------------------------------------
@@ -45,33 +55,26 @@ export default function App() {
     <Panel>
       <Container>
         <Flex direction="column" gap="l" style={{ padding: '24px' }}>
-          {/* Заголовок */}
-          <Typography.Title level={1}>
-            Nirvana MAX
-          </Typography.Title>
+          <Typography.Title level={1}>Nirvana MAX</Typography.Title>
 
-          {/* Статус подключения к MAX Bridge */}
-          <Typography.Text>
-            Платформа: {platform}
-          </Typography.Text>
+          <Typography.Text>Платформа: {platform}</Typography.Text>
 
-          {/* Информация о пользователе (если открыто в MAX) */}
           {user ? (
             <Typography.Text>
               Привет, {user.first_name}! (ID: {user.id})
             </Typography.Text>
           ) : (
-            <Typography.Text>
-              Приложение открыто вне MAX
+            <Typography.Text>Приложение открыто вне MAX</Typography.Text>
+          )}
+
+          <Button onClick={handleTest}>Проверить</Button>
+
+          {message && (
+            <Typography.Text style={{ marginTop: '12px', color: 'green' }}>
+              {message}
             </Typography.Text>
           )}
 
-          {/* Кнопка для проверки */}
-          <Button onClick={handleTest}>
-            Проверить
-          </Button>
-
-          {/* Подсказка для веб-разработчика */}
           <Typography.Text size="small" style={{ marginTop: '24px', opacity: 0.6 }}>
             Это каркас. Дальше — экраны и логика под кейс.
           </Typography.Text>
