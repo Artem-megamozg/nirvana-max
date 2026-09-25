@@ -100,6 +100,21 @@ def now_iso() -> str:
 def upsert_profile(user_id: str, data: dict[str, Any]):
     conn = get_conn()
 
+    # Дети: если пришёл массив children — используем его,
+    # иначе строим из children_count + children_ages (обратная совместимость)
+    children = data.get("children")
+    if children is None:
+        cnt = int(data.get("children_count") or 0)
+        ages = data.get("children_ages") or []
+        children = []
+        for i in range(cnt):
+            age = ages[i] if i < len(ages) else None
+            children.append({"name": "", "age": age})
+
+    # Вычисляемые поля для движка
+    children_count = len(children)
+    children_ages = [c.get("age") for c in children if c.get("age") is not None]
+
     payload = {
         "user_id": user_id,
         "region": data.get("region"),
@@ -107,40 +122,29 @@ def upsert_profile(user_id: str, data: dict[str, Any]):
         "employment": data.get("employment"),
         "marital_status": data.get("marital_status"),
         "income": data.get("income"),
-        "children_count": data.get("children_count", 0),
-        "children_ages": json.dumps(data.get("children_ages", []), ensure_ascii=False),
+        "children_count": children_count,
+        "children_ages": json.dumps(children_ages, ensure_ascii=False),
+        "children": json.dumps(children, ensure_ascii=False),
         "statuses": json.dumps(data.get("statuses", []), ensure_ascii=False),
         "scenario_id": data.get("scenario_id"),
+        "scenario_specific": json.dumps(data.get("scenario_specific", {}), ensure_ascii=False),
+        "full_name": data.get("full_name"),
+        "phone": data.get("phone"),
+        "about": data.get("about"),
         "updated_at": now_iso(),
     }
 
     conn.execute(
         """
         INSERT INTO profiles (
-            user_id,
-            region,
-            age,
-            employment,
-            marital_status,
-            income,
-            children_count,
-            children_ages,
-            statuses,
-            scenario_id,
-            updated_at
+            user_id, region, age, employment, marital_status, income,
+            children_count, children_ages, children, statuses, scenario_id,
+            scenario_specific, full_name, phone, about, updated_at
         )
         VALUES (
-            :user_id,
-            :region,
-            :age,
-            :employment,
-            :marital_status,
-            :income,
-            :children_count,
-            :children_ages,
-            :statuses,
-            :scenario_id,
-            :updated_at
+            :user_id, :region, :age, :employment, :marital_status, :income,
+            :children_count, :children_ages, :children, :statuses, :scenario_id,
+            :scenario_specific, :full_name, :phone, :about, :updated_at
         )
         ON CONFLICT(user_id) DO UPDATE SET
             region = excluded.region,
@@ -150,8 +154,13 @@ def upsert_profile(user_id: str, data: dict[str, Any]):
             income = excluded.income,
             children_count = excluded.children_count,
             children_ages = excluded.children_ages,
+            children = excluded.children,
             statuses = excluded.statuses,
             scenario_id = excluded.scenario_id,
+            scenario_specific = excluded.scenario_specific,
+            full_name = excluded.full_name,
+            phone = excluded.phone,
+            about = excluded.about,
             updated_at = excluded.updated_at
         """,
         payload,
@@ -175,6 +184,8 @@ def get_profile(user_id: str) -> dict[str, Any] | None:
     result = dict(row)
     result["children_ages"] = json.loads(result["children_ages"] or "[]")
     result["statuses"] = json.loads(result["statuses"] or "[]")
+    result["children"] = json.loads(result.get("children") or "[]")
+    result["scenario_specific"] = json.loads(result.get("scenario_specific") or "{}")
 
     if result["income"] is not None:
         result["income_below_pm"] = result["income"] <= INCOME_PM_THRESHOLD
@@ -471,31 +482,29 @@ def upsert_profile_meta(
     region: str | None = None,
     about: str | None = None,
 ):
-    conn = get_conn()
-    conn.execute(
-        """
-        INSERT INTO profile_meta (user_id, full_name, phone, region, about, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            full_name = excluded.full_name,
-            phone = excluded.phone,
-            region = excluded.region,
-            about = excluded.about,
-            updated_at = excluded.updated_at
-        """,
-        (user_id, full_name, phone, region, about, now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    existing = get_profile(user_id) or {}
+    merged = dict(existing)
+    if full_name is not None:
+        merged["full_name"] = full_name
+    if phone is not None:
+        merged["phone"] = phone
+    if region is not None:
+        merged["region"] = region
+    if about is not None:
+        merged["about"] = about
+    merged["user_id"] = user_id
+    upsert_profile(user_id, merged)
 
 
 def get_profile_meta(user_id: str) -> dict | None:
-    conn = get_conn()
-    row = conn.execute(
-        "SELECT * FROM profile_meta WHERE user_id = ?",
-        (user_id,),
-    ).fetchone()
-    conn.close()
-    if not row:
+    profile = get_profile(user_id)
+    if not profile:
         return None
-    return dict(row)
+    return {
+        "user_id": profile["user_id"],
+        "full_name": profile.get("full_name"),
+        "phone": profile.get("phone"),
+        "region": profile.get("region"),
+        "about": profile.get("about"),
+        "updated_at": profile.get("updated_at"),
+    }

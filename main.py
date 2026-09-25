@@ -51,6 +51,11 @@ reminder_worker_task = None
 
 # ---------- Pydantic-модели ----------
 
+class Child(BaseModel):
+    name: str = ""
+    age: int | None = None
+
+
 class ProfileRequest(BaseModel):
     user_id: str
     region: str | None = None
@@ -60,8 +65,13 @@ class ProfileRequest(BaseModel):
     income: float | None = None
     children_count: int = 0
     children_ages: list[int | str] = Field(default_factory=list)
+    children: list[Child] = Field(default_factory=list)
     statuses: list[str] = Field(default_factory=list)
     scenario_id: str | None = None
+    scenario_specific: dict = Field(default_factory=dict)
+    full_name: str | None = None
+    phone: str | None = None
+    about: str | None = None
 
 
 class RecommendationRequest(BaseModel):

@@ -39,8 +39,7 @@ const emptyProfile = {
   employment: '',
   marital_status: '',
   income: '',
-  children_count: 0,
-  children_ages: '',
+  children: [],
   statuses: [],
 }
 
@@ -290,9 +289,35 @@ function App() {
   function selectScenario(scenario) {
     setSelectedScenario(scenario)
 
-    setProfileForm((current) => ({
-      ...current,
-    }))
+    if (profile) {
+      const filled = {
+        region: profile.region || '',
+        age: profile.age || '',
+        employment: profile.employment || '',
+        marital_status: profile.marital_status || '',
+        income: profile.income || '',
+        children:
+          profile.children?.length
+            ? profile.children
+            : (profile.children_ages || []).map((age) => ({
+                name: '',
+                age,
+              })),
+        statuses: profile.statuses || [],
+      }
+      setProfileForm(filled)
+
+      // Профиль уже полный — сразу к результатам
+      const isComplete =
+        filled.region &&
+        filled.age &&
+        filled.employment
+
+      if (isComplete) {
+        navigate(SCREENS.PROFILE)
+        return
+      }
+    }
 
     navigate(SCREENS.PROFILE)
   }
@@ -322,7 +347,7 @@ function App() {
 
     if (
       selectedScenario.id === 'family' &&
-      profileForm.children_count < 1
+      (profileForm.children || []).length < 1
     ) {
       setError(
         'Для семейного сценария укажите хотя бы одного ребёнка.'
@@ -348,19 +373,10 @@ function App() {
           profileForm.income === ''
             ? null
             : Number(profileForm.income),
-        children_count:
-          Number(
-            profileForm.children_count || 0
-          ),
-        children_ages:
-          profileForm.children_ages
-            ? profileForm.children_ages
-                .split(/[,\s]+/)
-                .map((value) =>
-                  value.trim()
-                )
-                .filter(Boolean)
-            : [],
+        children: (profileForm.children || []).map((c) => ({
+          name: c.name || '',
+          age: c.age === '' || c.age == null ? null : Number(c.age),
+        })),
         statuses:
           profileForm.statuses,
         scenario_id:
@@ -746,6 +762,7 @@ function App() {
             }
             onSubmit={submitProfile}
             loading={actionLoading}
+            onOpenFullProfile={openProfileTab}
           />
         )}
 
@@ -1168,6 +1185,7 @@ function ProfileScreen({
   scenario,
   onSubmit,
   loading,
+  onOpenFullProfile,
 }) {
   function update(field, value) {
     setForm((current) => ({
@@ -1176,149 +1194,147 @@ function ProfileScreen({
     }))
   }
 
-  const family =
-    scenario?.id === 'family'
+  const family = scenario?.id === 'family'
+  const medical = scenario?.id === 'medical'
 
-  const medical =
-    scenario?.id === 'medical'
+  // Проверяем, какие поля заполнены
+  const summary = [
+    { key: 'region', label: 'Регион', value: form.region },
+    { key: 'age', label: 'Возраст', value: form.age },
+    { key: 'employment', label: 'Занятость', value: form.employment },
+    { key: 'income', label: 'Доход', value: form.income },
+    { key: 'children', label: 'Дети', value: (form.children || []).length },
+  ]
+
+  const missing = summary.filter((s) => {
+    if (s.key === 'children') {
+      return family && (form.children || []).length === 0
+    }
+    return !s.value
+  })
+
+  const isComplete = missing.length === 0
 
   return (
     <section className="content">
       <div className="page-heading">
-        <span className="eyebrow">
-          ШАГ 2
-        </span>
+        <span className="eyebrow">ШАГ 2</span>
 
         <div className="selected-scenario">
-          <span>
-            {scenario?.icon}
-          </span>
-
+          <span>{scenario?.icon}</span>
           {scenario?.title}
         </div>
 
         <h1>
-          Немного о вас
+          {isComplete
+            ? 'Проверим данные'
+            : 'Заполним недостающее'}
         </h1>
 
         <p>
-          Заполним профиль один раз.
-          Потом его можно использовать
-          повторно в других сценариях.
+          {isComplete
+            ? 'Вот что мы о вас знаем. Если всё верно — построим маршрут.'
+            : 'Мы уже знаем о вас многое. Осталось заполнить несколько полей.'}
         </p>
       </div>
 
-      <div className="form-card">
-        <Field
-          label="Регион"
-          value={form.region}
-          placeholder="Например, Москва"
-          onChange={(value) =>
-            update('region', value)
-          }
-        />
-
-        <div className="field-grid">
-          <Field
-            label="Возраст"
-            type="number"
-            value={form.age}
-            placeholder="30"
-            onChange={(value) =>
-              update('age', value)
-            }
-          />
-
-          <SelectField
-            label="Занятость"
-            value={form.employment}
-            options={[
-              'работаю',
-              'не работаю',
-              'учусь',
-              'работаю и учусь',
-            ]}
-            onChange={(value) =>
-              update(
-                'employment',
-                value
-              )
-            }
-          />
-        </div>
-
-        <Field
-          label="Доход на члена семьи"
-          type="number"
-          value={form.income}
-          placeholder="Например, 25000"
-          onChange={(value) =>
-            update('income', value)
-          }
-        />
-
-        {family && (
-          <>
-            <div className="field-grid">
-              <Field
-                label="Количество детей"
-                type="number"
-                value={
-                  form.children_count
-                }
-                min="0"
-                onChange={(value) =>
-                  update(
-                    'children_count',
-                    value
-                  )
-                }
-              />
-
-              <Field
-                label="Возраст детей"
-                value={
-                  form.children_ages
-                }
-                placeholder="4, 8"
-                onChange={(value) =>
-                  update(
-                    'children_ages',
-                    value
-                  )
-                }
-              />
+      {isComplete && (
+        <div className="profile-summary-card">
+          {summary.map((row) => (
+            <div key={row.key} className="summary-row">
+              <span className="summary-check">✓</span>
+              <span className="summary-label">{row.label}:</span>
+              <span className="summary-value">
+                {row.key === 'children'
+                  ? `${row.value} ${row.value === 1 ? 'ребёнок' : 'детей'}`
+                  : row.value}
+              </span>
             </div>
+          ))}
 
+          <button
+            className="link-button full"
+            onClick={onOpenFullProfile}
+          >
+            Что-то изменить →
+          </button>
+        </div>
+      )}
+
+      {!isComplete && (
+        <div className="form-card">
+          {!form.region && (
+            <Field
+              label="Регион"
+              value={form.region}
+              placeholder="Например, Москва"
+              onChange={(value) => update('region', value)}
+            />
+          )}
+
+          {(!form.age || !form.employment) && (
+            <div className="field-grid">
+              {!form.age && (
+                <Field
+                  label="Возраст"
+                  type="number"
+                  value={form.age}
+                  placeholder="30"
+                  onChange={(value) => update('age', value)}
+                />
+              )}
+
+              {!form.employment && (
+                <SelectField
+                  label="Занятость"
+                  value={form.employment}
+                  options={[
+                    'работаю',
+                    'не работаю',
+                    'учусь',
+                    'работаю и учусь',
+                  ]}
+                  onChange={(value) => update('employment', value)}
+                />
+              )}
+            </div>
+          )}
+
+          {!form.income && (
+            <Field
+              label="Доход на члена семьи"
+              type="number"
+              value={form.income}
+              placeholder="Например, 25000"
+              onChange={(value) => update('income', value)}
+            />
+          )}
+
+          {family && (form.children || []).length === 0 && (
+            <ChildrenEditor
+              children={form.children || []}
+              onChange={(next) => update('children', next)}
+            />
+          )}
+
+          {family && !form.marital_status && (
             <SelectField
               label="Семейное положение"
-              value={
-                form.marital_status
-              }
-              options={[
-                'женат/замужем',
-                'не женат/не замужем',
-              ]}
-              onChange={(value) =>
-                update(
-                  'marital_status',
-                  value
-                )
-              }
+              value={form.marital_status}
+              options={['женат/замужем', 'не женат/не замужем']}
+              onChange={(value) => update('marital_status', value)}
             />
-          </>
-        )}
+          )}
 
-        {medical && (
-          <InfoBlock>
-            Мы не ставим диагнозы и не
-            интерпретируем результаты
-            обследований. Здесь мы
-            строим только
-            административный маршрут.
-          </InfoBlock>
-        )}
-      </div>
+          {medical && (
+            <InfoBlock>
+              Мы не ставим диагнозы и не интерпретируем
+              результаты обследований. Здесь мы строим
+              только административный маршрут.
+            </InfoBlock>
+          )}
+        </div>
+      )}
 
       <button
         className="primary-button full"
@@ -1326,11 +1342,11 @@ function ProfileScreen({
         disabled={loading}
       >
         {loading
-          ? 'Сохраняем...'
-          : 'Построить мой маршрут'}
-        {!loading && (
-          <span>→</span>
-        )}
+          ? 'Строим маршрут...'
+          : isComplete
+            ? 'Всё верно, строить маршрут'
+            : 'Продолжить'}
+        {!loading && <span>→</span>}
       </button>
     </section>
   )
@@ -2261,14 +2277,26 @@ function MyProfileScreen({
   const [form, setForm] = useState({
     full_name:
       profileMeta?.full_name ||
+      profile?.full_name ||
       maxUser?.first_name ||
       '',
-    phone: profileMeta?.phone || '',
+    phone: profileMeta?.phone || profile?.phone || '',
     region:
       profileMeta?.region ||
       profile?.region ||
       '',
-    about: profileMeta?.about || '',
+    about: profileMeta?.about || profile?.about || '',
+    age: profile?.age || '',
+    employment: profile?.employment || '',
+    marital_status: profile?.marital_status || '',
+    income: profile?.income || '',
+    children:
+      profile?.children?.length
+        ? profile.children
+        : (profile?.children_ages || []).map((age) => ({
+            name: '',
+            age,
+          })),
   })
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
@@ -2286,14 +2314,25 @@ function MyProfileScreen({
     setSaving(true)
     setError('')
     try {
-      const res = await fetch(
-        `/api/profile/${encodeURIComponent(userId)}/meta`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        }
-      )
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          full_name: form.full_name,
+          phone: form.phone,
+          region: form.region,
+          about: form.about,
+          age: form.age ? Number(form.age) : null,
+          employment: form.employment || null,
+          marital_status: form.marital_status || null,
+          income: form.income === '' ? null : Number(form.income),
+          children: (form.children || []).map((c) => ({
+            name: c.name || '',
+            age: c.age === '' || c.age == null ? null : Number(c.age),
+          })),
+        }),
+      })
       if (!res.ok) {
         const text = await res.text()
         throw new Error(`HTTP ${res.status}: ${text}`)
@@ -2374,6 +2413,55 @@ function MyProfileScreen({
             onChange={(e) => update('about', e.target.value)}
           />
         </label>
+
+        <div className="form-section-title">
+          Данные для подбора мер
+        </div>
+
+        <div className="field-grid">
+          <Field
+            label="Возраст"
+            type="number"
+            value={form.age}
+            placeholder="30"
+            onChange={(value) => update('age', value)}
+          />
+
+          <SelectField
+            label="Занятость"
+            value={form.employment}
+            options={[
+              'работаю',
+              'не работаю',
+              'учусь',
+              'работаю и учусь',
+            ]}
+            onChange={(value) => update('employment', value)}
+          />
+        </div>
+
+        <Field
+          label="Доход на члена семьи"
+          type="number"
+          value={form.income}
+          placeholder="Например, 25000"
+          onChange={(value) => update('income', value)}
+        />
+
+        <ChildrenEditor
+          children={form.children || []}
+          onChange={(next) => update('children', next)}
+        />
+
+        <SelectField
+          label="Семейное положение"
+          value={form.marital_status}
+          options={[
+            'женат/замужем',
+            'не женат/не замужем',
+          ]}
+          onChange={(value) => update('marital_status', value)}
+        />
       </div>
 
       {error && (
@@ -2406,6 +2494,98 @@ function MyProfileScreen({
         ← На главную
       </button>
     </section>
+  )
+}
+
+
+
+function ChildrenEditor({ children, onChange }) {
+  function addChild() {
+    onChange([...children, { name: '', age: '' }])
+  }
+
+  function removeChild(index) {
+    const next = children.filter((_, i) => i !== index)
+    onChange(next)
+  }
+
+  function updateChild(index, field, value) {
+    const next = children.map((c, i) =>
+      i === index ? { ...c, [field]: value } : c
+    )
+    onChange(next)
+  }
+
+  return (
+    <div className="children-editor">
+      <div className="children-header">
+        <span>Дети</span>
+        <div className="children-counter">
+          <button
+            type="button"
+            className="counter-button"
+            onClick={() =>
+              children.length > 0 &&
+              removeChild(children.length - 1)
+            }
+            disabled={children.length === 0}
+          >
+            −
+          </button>
+          <span className="counter-value">{children.length}</span>
+          <button
+            type="button"
+            className="counter-button"
+            onClick={addChild}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {children.length === 0 && (
+        <div className="children-empty">
+          Нажмите «+», чтобы добавить ребёнка
+        </div>
+      )}
+
+      {children.map((child, index) => (
+        <div key={index} className="child-row">
+          <input
+            type="text"
+            className="child-input child-name"
+            placeholder="Имя"
+            value={child.name || ''}
+            onChange={(e) =>
+              updateChild(index, 'name', e.target.value)
+            }
+          />
+          <input
+            type="number"
+            className="child-input child-age"
+            placeholder="Возраст"
+            value={child.age ?? ''}
+            onChange={(e) =>
+              updateChild(
+                index,
+                'age',
+                e.target.value === ''
+                  ? ''
+                  : Number(e.target.value)
+              )
+            }
+          />
+          <button
+            type="button"
+            className="child-remove"
+            onClick={() => removeChild(index)}
+            aria-label="Удалить"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
   )
 }
 
