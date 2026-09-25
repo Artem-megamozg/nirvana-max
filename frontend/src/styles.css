@@ -1441,3 +1441,124 @@ button:disabled {
     border-color: #2a2f36;
   }
 }
+
+/* === Правка A: доп. элементы === */
+
+.reminder-options {
+  margin-top: 8px;
+}
+
+.reminder-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reminder-buttons .secondary-button {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 14px;
+}
+
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.home-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(122, 92, 250, 0.12);
+  color: #6a3df5;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.reminder-options {
+  margin-top: 8px;
+}
+
+/* BottomNav: 4 пункта */
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* === Мой профиль === */
+
+.profile-avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6a3df5, #a78bfa);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profile-avatar-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-avatar-name strong {
+  font-size: 18px;
+}
+
+.profile-avatar-name span {
+  color: #6b6b7b;
+  font-size: 13px;
+}
+
+.form-card textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e5ef;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  resize: vertical;
+  background: #fff;
+  color: inherit;
+}
+
+.form-card textarea:focus {
+  outline: none;
+  border-color: #6a3df5;
+}
+
+.saved-note {
+  margin-top: 12px;
+  text-align: center;
+  color: #22c55e;
+  font-size: 14px;
+}
+
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}

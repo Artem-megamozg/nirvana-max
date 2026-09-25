@@ -26,6 +26,7 @@ const SCREENS = {
   HOME: 'home',
   SCENARIOS: 'scenarios',
   PROFILE: 'profile',
+  MY_PROFILE: 'my_profile',
   RESULTS: 'results',
   MEASURE: 'measure',
   ROUTE: 'route',
@@ -86,9 +87,9 @@ function formatDate(value) {
   })
 }
 
-function tomorrowIso() {
+function reminderIso(hours = 24) {
   return new Date(
-    Date.now() + 24 * 60 * 60 * 1000
+    Date.now() + hours * 60 * 60 * 1000
   ).toISOString()
 }
 
@@ -112,6 +113,7 @@ function App() {
 
   const [scenarios, setScenarios] = useState([])
   const [profile, setProfile] = useState(null)
+  const [profileMeta, setProfileMeta] = useState(null)
   const [profileForm, setProfileForm] =
     useState(emptyProfile)
 
@@ -181,13 +183,21 @@ function App() {
         tasksData,
         remindersData,
         historyData,
+        metaData,
       ] = await Promise.all([
         getScenarios(),
         getProfile(userId),
         getTasks(userId),
         getReminders(userId),
         getHistory(userId),
+        fetch(`/api/profile/${encodeURIComponent(userId)}/meta`)
+          .then((r) => r.json())
+          .catch(() => ({ exists: false, meta: null })),
       ])
+
+      if (metaData?.meta) {
+        setProfileMeta(metaData.meta)
+      }
 
       setScenarios(
         scenariosData?.items || []
@@ -345,7 +355,7 @@ function App() {
         children_ages:
           profileForm.children_ages
             ? profileForm.children_ages
-                .split(',')
+                .split(/[,\s]+/)
                 .map((value) =>
                   value.trim()
                 )
@@ -407,6 +417,7 @@ function App() {
       setActionLoading(true)
       setError('')
       setExplanation('')
+      setSelectedMeasure(null)
 
       const details =
         await getMeasure(
@@ -499,14 +510,14 @@ function App() {
     }
   }
 
-  async function addReminder(taskId = null) {
+  async function addReminder(taskId = null, hours = 24) {
     try {
       setActionLoading(true)
 
       await createReminder({
         user_id: userId,
         task_id: taskId,
-        remind_at: tomorrowIso(),
+        remind_at: reminderIso(hours),
       })
 
       const reminderData =
@@ -603,6 +614,10 @@ function App() {
     navigate(SCREENS.PROFILE)
   }
 
+  function openProfileTab() {
+    navigate(SCREENS.MY_PROFILE)
+  }
+
   function routeToMeasure(measureId) {
     const measure =
       recommendations.find(
@@ -616,34 +631,41 @@ function App() {
 
   const profileCompletion =
     useMemo(() => {
-      if (!profile) {
-        return 0
-      }
+      // 7 полей: 5 из анкеты + 2 из meta
+      const total = 7
 
-      const fields = [
-        profile.region,
-        profile.age,
-        profile.employment,
-        profile.income,
+      // Анкетные поля
+      const baseFields = [
+        profile?.region,
+        profile?.age,
+        profile?.employment,
+        profile?.income,
       ]
 
       let completed =
-        fields.filter(Boolean).length
+        baseFields.filter(Boolean).length
 
       if (
-        profile.children_count !==
+        profile?.children_count !==
         undefined
       ) {
         completed += 1
       }
 
+      // Meta-поля
+      if (profileMeta?.full_name) {
+        completed += 1
+      }
+
+      if (profileMeta?.phone) {
+        completed += 1
+      }
+
       return Math.min(
         100,
-        Math.round(
-          (completed / 5) * 100
-        )
+        Math.round((completed / total) * 100)
       )
-    }, [profile])
+    }, [profile, profileMeta])
 
   if (loading) {
     return (
@@ -697,6 +719,17 @@ function App() {
           />
         )}
 
+        {screen === SCREENS.MY_PROFILE && (
+          <MyProfileScreen
+            maxUser={maxUser}
+            profile={profile}
+            profileMeta={profileMeta}
+            userId={userId}
+            onBack={goHome}
+            onSaved={(meta) => setProfileMeta(meta)}
+          />
+        )}
+
         {screen === SCREENS.SCENARIOS && (
           <ScenarioScreen
             scenarios={scenarios}
@@ -732,6 +765,9 @@ function App() {
               )
             }
             onProfile={editProfile}
+            onBackToScenarios={() =>
+              navigate(SCREENS.SCENARIOS)
+            }
           />
         )}
 
@@ -753,8 +789,8 @@ function App() {
               explainCurrentMeasure
             }
             onTask={makeTask}
-            onReminder={() =>
-              addReminder()
+            onReminder={(hours) =>
+              addReminder(null, hours)
             }
             onOfficial={() =>
               openExternal(
@@ -807,6 +843,7 @@ function App() {
               SCREENS.REMINDERS
             )
           }
+          onProfile={openProfileTab}
         />
       </div>
     </AppShell>
@@ -957,7 +994,7 @@ function HomeScreen({
         </button>
       </div>
 
-      {profile ? (
+      {profile && profileCompletion < 100 ? (
         <button
           className="profile-progress card"
           onClick={onProfile}
@@ -969,7 +1006,7 @@ function HomeScreen({
               </span>
 
               <h3>
-                Профиль заполнен
+                Заполнено на {profileCompletion}%
               </h3>
             </div>
 
@@ -987,7 +1024,7 @@ function HomeScreen({
           </div>
 
           <div className="card-footer">
-            Настроить профиль
+            Дополнить профиль
             <span>→</span>
           </div>
         </button>
@@ -1038,54 +1075,24 @@ function HomeScreen({
         </div>
       </div>
 
-      <div className="dashboard-grid">
-        <button
-          className="dashboard-card"
-          onClick={onRoute}
-        >
-          <span className="dashboard-icon">
-            ✓
-          </span>
-
-          <div>
-            <span className="muted-label">
-              МОЙ МАРШРУТ
+      {(pendingTasks.length > 0 || nextReminder) && (
+        <div className="home-status">
+          {pendingTasks.length > 0 && (
+            <span className="status-chip">
+              ✓ {pendingTasks.length}{' '}
+              {pendingTasks.length === 1
+                ? 'задача'
+                : 'задач'}{' '}
+              в маршруте
             </span>
-
-            <strong>
-              {pendingTasks.length
-                ? `${pendingTasks.length} ${
-                    pendingTasks.length ===
-                    1
-                      ? 'задача'
-                      : 'задач'
-                  }`
-                : 'Пока пусто'}
-            </strong>
-          </div>
-        </button>
-
-        <button
-          className="dashboard-card"
-          onClick={onReminders}
-        >
-          <span className="dashboard-icon">
-            ◷
-          </span>
-
-          <div>
-            <span className="muted-label">
-              НАПОМИНАНИЯ
+          )}
+          {nextReminder && (
+            <span className="status-chip">
+              ◷ есть напоминание
             </span>
-
-            <strong>
-              {nextReminder
-                ? 'Есть напоминание'
-                : 'Пока нет'}
-            </strong>
-          </div>
-        </button>
-      </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }
@@ -1336,6 +1343,7 @@ function ResultsScreen({
   onOpen,
   onRoute,
   onProfile,
+  onBackToScenarios,
 }) {
   return (
     <section className="content">
@@ -1485,12 +1493,20 @@ function ResultsScreen({
             точность маршрута.
           </p>
 
-          <button
-            className="secondary-button"
-            onClick={onProfile}
-          >
-            Дополнить профиль
-          </button>
+          <div className="empty-actions">
+            <button
+              className="secondary-button"
+              onClick={onProfile}
+            >
+              Дополнить профиль
+            </button>
+            <button
+              className="link-button"
+              onClick={onBackToScenarios}
+            >
+              Сменить ситуацию
+            </button>
+          </div>
         </div>
       )}
 
@@ -1719,21 +1735,42 @@ function MeasureScreen({
           <span>→</span>
         </button>
 
-        <button
-          className="secondary-button full"
-          onClick={onReminder}
-          disabled={loading}
-        >
-          Напомнить мне завтра
-        </button>
+        <div className="reminder-options">
+          <div className="muted-label">НАПОМНИТЬ</div>
+          <div className="reminder-buttons">
+            <button
+              className="secondary-button"
+              onClick={() => onReminder(1)}
+              disabled={loading}
+            >
+              Через час
+            </button>
+            <button
+              className="secondary-button"
+              onClick={() => onReminder(24)}
+              disabled={loading}
+            >
+              Завтра
+            </button>
+            <button
+              className="secondary-button"
+              onClick={() => onReminder(72)}
+              disabled={loading}
+            >
+              Через 3 дня
+            </button>
+          </div>
+        </div>
 
-        <button
-          className="link-button full"
-          onClick={onOfficial}
-        >
-          Открыть официальный источник
-          ↗
-        </button>
+        {measure.source_url && (
+          <button
+            className="link-button full"
+            onClick={onOfficial}
+          >
+            Открыть официальный источник
+            ↗
+          </button>
+        )}
       </div>
 
       <div className="source-note">
@@ -1926,6 +1963,12 @@ function RouteScreen({
 
           <div className="history-list">
             {history
+              .filter((event) =>
+                ![
+                  'reminder_created',
+                  'bot_started',
+                ].includes(event.event_type)
+              )
               .slice(0, 8)
               .map((event) => (
                 <div
@@ -2046,6 +2089,7 @@ function BottomNav({
   onHome,
   onRoute,
   onReminders,
+  onProfile,
 }) {
   const items = [
     {
@@ -2065,6 +2109,12 @@ function BottomNav({
       icon: '◷',
       title: 'Напоминания',
       onClick: onReminders,
+    },
+    {
+      id: SCREENS.MY_PROFILE,
+      icon: '◇',
+      title: 'Профиль',
+      onClick: onProfile,
     },
   ]
 
@@ -2196,6 +2246,166 @@ function historyLabel(
   return (
     labels[type] ||
     'Действие в Nirvana'
+  )
+}
+
+
+function MyProfileScreen({
+  maxUser,
+  profile,
+  profileMeta,
+  userId,
+  onBack,
+  onSaved,
+}) {
+  const [form, setForm] = useState({
+    full_name:
+      profileMeta?.full_name ||
+      maxUser?.first_name ||
+      '',
+    phone: profileMeta?.phone || '',
+    region:
+      profileMeta?.region ||
+      profile?.region ||
+      '',
+    about: profileMeta?.about || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [savedAt, setSavedAt] = useState(null)
+  const [error, setError] = useState('')
+
+  function update(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+    setSavedAt(null)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch(
+        `/api/profile/${encodeURIComponent(userId)}/meta`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        }
+      )
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`HTTP ${res.status}: ${text}`)
+      }
+      const data = await res.json()
+      if (data?.meta) {
+        onSaved?.(data.meta)
+      }
+      setSavedAt(new Date())
+    } catch (err) {
+      setError(err.message || 'Не удалось сохранить')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="content">
+      <div className="page-heading">
+        <span className="eyebrow">
+          МОЙ ПРОФИЛЬ
+        </span>
+
+        <h1>
+          Личные данные
+        </h1>
+
+        <p>
+          Эти данные не влияют на подбор мер —
+          они нужны только для вашего удобства
+          и чтобы не вводить их каждый раз.
+        </p>
+      </div>
+
+      <div className="profile-avatar-block">
+        <div className="profile-avatar">
+          {form.full_name?.[0]?.toUpperCase() || 'N'}
+        </div>
+        <div className="profile-avatar-name">
+          <strong>
+            {form.full_name || 'Без имени'}
+          </strong>
+          <span>
+            ID: {userId}
+          </span>
+        </div>
+      </div>
+
+      <div className="form-card">
+        <Field
+          label="Имя и фамилия"
+          value={form.full_name}
+          placeholder="Иван Иванов"
+          onChange={(value) => update('full_name', value)}
+        />
+
+        <Field
+          label="Телефон"
+          type="tel"
+          value={form.phone}
+          placeholder="+7 999 123-45-67"
+          onChange={(value) => update('phone', value)}
+        />
+
+        <Field
+          label="Регион"
+          value={form.region}
+          placeholder="Например, Москва"
+          onChange={(value) => update('region', value)}
+        />
+
+        <label className="field">
+          <span>О себе</span>
+          <textarea
+            value={form.about}
+            placeholder="Коротко о вашей ситуации"
+            rows={3}
+            onChange={(e) => update('about', e.target.value)}
+          />
+        </label>
+      </div>
+
+      {error && (
+        <div className="error-banner">
+          <div>
+            <strong>Не получилось</strong>
+            <div>{error}</div>
+          </div>
+        </div>
+      )}
+
+      <button
+        className="primary-button full"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? 'Сохраняем...' : 'Сохранить'}
+      </button>
+
+      {savedAt && (
+        <div className="saved-note">
+          ✓ Сохранено в {savedAt.toLocaleTimeString('ru-RU')}
+        </div>
+      )}
+
+      <button
+        className="link-button full"
+        onClick={onBack}
+      >
+        ← На главную
+      </button>
+    </section>
   )
 }
 

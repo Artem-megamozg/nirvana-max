@@ -25,12 +25,14 @@ from storage import (
     get_due_reminders,
     get_history,
     get_profile,
+    get_profile_meta,
     get_reminders,
     get_tasks,
     init_db,
     mark_reminder_sent,
     upsert_checklist,
     upsert_profile,
+    upsert_profile_meta,
 )
 
 load_dotenv()
@@ -99,6 +101,13 @@ class CompleteTaskRequest(BaseModel):
 class ExplainRequest(BaseModel):
     user_id: str
     measure_id: str
+
+
+class ProfileMetaRequest(BaseModel):
+    full_name: str | None = None
+    phone: str | None = None
+    region: str | None = None
+    about: str | None = None
 
 
 # ---------- Отправка сообщений в MAX ----------
@@ -286,6 +295,26 @@ async def save_profile(data: ProfileRequest):
 
 
 # ---------- Рекомендации ----------
+
+@app.get("/api/profile/{user_id}/meta")
+async def profile_meta(user_id: str):
+    meta = get_profile_meta(user_id)
+    if meta is None:
+        return {"exists": False, "meta": None}
+    return {"exists": True, "meta": meta}
+
+
+@app.post("/api/profile/{user_id}/meta")
+async def save_profile_meta(user_id: str, data: ProfileMetaRequest):
+    upsert_profile_meta(
+        user_id,
+        full_name=data.full_name,
+        phone=data.phone,
+        region=data.region,
+        about=data.about,
+    )
+    return {"ok": True, "meta": get_profile_meta(user_id)}
+
 
 @app.post("/api/recommendations")
 async def recommendations(data: RecommendationRequest):

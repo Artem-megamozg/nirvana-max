@@ -77,6 +77,15 @@ def init_db():
             payload TEXT DEFAULT '{}',
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS profile_meta (
+            user_id TEXT PRIMARY KEY,
+            full_name TEXT,
+            phone TEXT,
+            region TEXT,
+            about TEXT,
+            updated_at TEXT NOT NULL
+        );
         """
     )
 
@@ -453,3 +462,40 @@ def get_history(user_id: str) -> list[dict[str, Any]]:
         result.append(item)
 
     return result
+
+
+def upsert_profile_meta(
+    user_id: str,
+    full_name: str | None = None,
+    phone: str | None = None,
+    region: str | None = None,
+    about: str | None = None,
+):
+    conn = get_conn()
+    conn.execute(
+        """
+        INSERT INTO profile_meta (user_id, full_name, phone, region, about, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            full_name = excluded.full_name,
+            phone = excluded.phone,
+            region = excluded.region,
+            about = excluded.about,
+            updated_at = excluded.updated_at
+        """,
+        (user_id, full_name, phone, region, about, now_iso()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_profile_meta(user_id: str) -> dict | None:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM profile_meta WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    return dict(row)
