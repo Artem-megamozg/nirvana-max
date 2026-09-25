@@ -409,7 +409,6 @@ function App() {
       )
 
       haptic('success')
-      showToast('Профиль сохранён')
       navigate(SCREENS.RESULTS)
     } catch (err) {
       setError(
@@ -640,8 +639,11 @@ function App() {
         (item) => item.id === measureId
       )
 
+    // Если меры нет в текущей выдаче — грузим карточку по id
     if (measure) {
       openMeasure(measure)
+    } else {
+      openMeasure({ id: measureId })
     }
   }
 
@@ -824,6 +826,9 @@ function App() {
               routeToMeasure
             }
             onHome={goHome}
+            onScenarios={() =>
+              navigate(SCREENS.SCENARIOS)
+            }
           />
         )}
 
@@ -1565,8 +1570,14 @@ function MeasureScreen({
         )}
       </div>
 
-      <div className="why-card card">
-        <div className="muted-label">
+      <div
+        className="why-card card"
+        style={{ color: '#1a1a1a', background: '#f7f7fb' }}
+      >
+        <div
+          className="muted-label"
+          style={{ color: '#6b6b7b' }}
+        >
           ПОЧЕМУ ЭТО В ВАШЕМ МАРШРУТЕ
         </div>
 
@@ -1577,15 +1588,16 @@ function MeasureScreen({
                 <div
                   key={reason}
                   className="bullet-row success"
+                  style={{ color: '#1a1a1a' }}
                 >
-                  <span>✓</span>
+                  <span style={{ color: '#22c55e' }}>✓</span>
                   {reason}
                 </div>
               )
             )}
           </div>
         ) : (
-          <p>
+          <p style={{ color: '#1a1a1a' }}>
             Мера добавлена в маршрут
             на основании вашей
             ситуации и выбранного
@@ -1766,6 +1778,7 @@ function RouteScreen({
   onReminder,
   onMeasure,
   onHome,
+  onScenarios,
 }) {
   const pending =
     tasks.filter(
@@ -1863,6 +1876,15 @@ function RouteScreen({
 
                   <div className="task-actions">
                     <button
+                      className="small-button success"
+                      onClick={() =>
+                        onComplete(task.id)
+                      }
+                    >
+                      ✓ Завершить
+                    </button>
+
+                    <button
                       className="small-button"
                       onClick={() =>
                         onReminder(
@@ -1873,11 +1895,7 @@ function RouteScreen({
                       ◷ Напомнить
                     </button>
 
-                    {recommendations.some(
-                      (item) =>
-                        item.id ===
-                        task.measure_id
-                    ) && (
+                    {task.measure_id && (
                       <button
                         className="small-button ghost"
                         onClick={() =>
@@ -1896,29 +1914,38 @@ function RouteScreen({
           )}
         </div>
       ) : (
-        <div className="empty-card">
+        <div className="empty-card done">
           <div className="empty-icon success">
             ✓
           </div>
 
           <h3>
             {completed.length
-              ? 'Все задачи маршрута выполнены'
+              ? 'Маршрут пройден'
               : 'Активных задач нет'}
           </h3>
 
           <p>
             {completed.length
-              ? 'Вы прошли весь маршрут. Можно проверить другой сценарий.'
+              ? `Вы выполнили ${completed.length} ${completed.length === 1 ? 'задачу' : 'задач'}. Проверьте другие сценарии — там могут быть ещё меры.`
               : 'Вы можете пройти новый сценарий и собрать маршрут.'}
           </p>
 
-          <button
-            className="primary-button"
-            onClick={onHome}
-          >
-            Вернуться домой
-          </button>
+          <div className="done-actions">
+            <button
+              className="primary-button"
+              onClick={onScenarios}
+            >
+              Проверить другие ситуации
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={onHome}
+            >
+              На главную
+            </button>
+          </div>
         </div>
       )}
 
@@ -1958,9 +1985,7 @@ function RouteScreen({
                   )}
 
                   <div className="task-actions">
-                    {recommendations.some(
-                      (item) => item.id === task.measure_id
-                    ) && (
+                    {task.measure_id && (
                       <button
                         className="small-button ghost"
                         onClick={() =>

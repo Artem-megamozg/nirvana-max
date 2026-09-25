@@ -1859,3 +1859,95 @@ button:disabled {
 .task-status.muted {
   color: #6b6b7b;
 }
+
+/* === Фикс why-card и bullet-list === */
+
+.why-card,
+.why-card * {
+  color: #1a1a1a;
+}
+
+.why-card .muted-label {
+  color: #6b6b7b;
+}
+
+.bullet-row {
+  color: #1a1a1a;
+}
+
+.bullet-row.success {
+  color: #1a1a1a;
+}
+
+.bullet-row.success span {
+  color: #22c55e;
+}
+
+.explanation-card {
+  color: #1a1a1a;
+  background: #f7f7fb;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .why-card,
+  .why-card * {
+    color: #f0f0f5;
+  }
+
+  .why-card .muted-label {
+    color: #9a9aa8;
+  }
+
+  .bullet-row,
+  .bullet-row.success {
+    color: #f0f0f5;
+  }
+
+  .explanation-card {
+    color: #f0f0f5;
+    background: #1f1f2a;
+  }
+}
+
+/* Финальный экран маршрута */
+.empty-card.done {
+  padding: 32px 24px;
+}
+
+.done-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.done-actions .primary-button,
+.done-actions .secondary-button {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ЖЁСТКИЙ фикс why-card */
+.why-card,
+.why-card *,
+.why-card .bullet-row,
+.why-card .bullet-row.success,
+.why-card .bullet-row span,
+.why-card p,
+.why-card .muted-label {
+  color: #1a1a1a !important;
+}
+
+.why-card .muted-label {
+  color: #6b6b7b !important;
+}
+
+.why-card .bullet-row.success > span:first-child {
+  color: #22c55e !important;
+}
