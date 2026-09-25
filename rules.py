@@ -3,7 +3,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-CATALOG_PATH = Path("/opt/nirvana-max/data/catalog.json")
+# Путь относительно корня проекта — работает и локально, и в Docker
+BASE_DIR = Path(__file__).resolve().parent
+CATALOG_PATH = BASE_DIR / "data" / "catalog.json"
 
 
 @lru_cache(maxsize=1)

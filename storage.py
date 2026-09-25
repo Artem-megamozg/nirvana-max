@@ -5,7 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path("/opt/nirvana-max/data/nirvana.db")
+# Путь относительно корня проекта — работает и локально, и в Docker
+BASE_DIR = Path(__file__).resolve().parent
+DB_PATH = BASE_DIR / "data" / "nirvana.db"
 INCOME_PM_THRESHOLD = float(os.getenv("INCOME_PM_THRESHOLD", "25000"))
 
 
