@@ -159,11 +159,20 @@ async def send_message(
 # ---------- Воркер напоминаний ----------
 
 async def reminder_loop():
+    print("REMINDER WORKER: старт")
+    counter = 0
     while True:
+        counter += 1
+        due = []
         try:
             due = get_due_reminders()
 
+            if due:
+                print(f"REMINDER WORKER: нашёл {len(due)} к отправке")
+
             for reminder in due:
+                print(f"REMINDER WORKER: отправляю id={reminder['id']} user={reminder['user_id']}")
+
                 task_id = reminder.get("task_id")
 
                 if task_id:
@@ -185,8 +194,12 @@ async def reminder_loop():
                         include_app_button=True,
                     )
                     mark_reminder_sent(reminder["id"])
+                    print(f"REMINDER WORKER: отправлено id={reminder['id']}")
                 except Exception as error:
                     print("REMINDER SEND ERROR:", repr(error))
+
+            if counter % 10 == 0:
+                print(f"REMINDER WORKER: жив, итерация {counter}, due={len(due)}")
 
         except Exception as error:
             print("REMINDER WORKER ERROR:", repr(error))
@@ -194,9 +207,6 @@ async def reminder_loop():
         await asyncio.sleep(30)
 
 
-# ---------- Lifespan ----------
-
-@asynccontextmanager
 async def lifespan(app: FastAPI):
     global reminder_worker_task
 

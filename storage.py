@@ -325,6 +325,9 @@ def create_reminder(
 ) -> int:
     conn = get_conn()
 
+    # Нормализуем формат: обрезаем миллисекунды, приводим к виду now_iso()
+    normalized = remind_at.replace("Z", "").split(".")[0] + "Z"
+
     cur = conn.execute(
         """
         INSERT INTO reminders (
@@ -335,7 +338,7 @@ def create_reminder(
         )
         VALUES (?, ?, ?, 1)
         """,
-        (user_id, task_id, remind_at),
+        (user_id, task_id, normalized),
     )
 
     conn.commit()
