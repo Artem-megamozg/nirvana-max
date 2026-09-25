@@ -402,6 +402,578 @@
       "missing": [
         "Проверить дату следующего действия"
       ]
+    },
+    {
+      "id": "family_maternity_capital",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Материнский капитал",
+      "short_description": "Федеральная выплата при рождении первого или второго ребёнка.",
+      "amount": "Зависит от года рождения ребёнка и очерёдности",
+      "conditions": [
+        "Первый или второй ребёнок",
+        "Гражданство РФ у матери"
+      ],
+      "how_to_apply": "Через СФР или Госуслуги. Сертификат оформляется автоматически при рождении.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_maternity_capital_monthly",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Ежемесячная выплата из маткапитала",
+      "short_description": "Выплата на ребёнка до 3 лет из средств материнского капитала.",
+      "amount": "Размер регионального ПМ на ребёнка",
+      "conditions": [
+        "Ребёнок до 3 лет",
+        "Доход на члена семьи ниже 2 ПМ"
+      ],
+      "how_to_apply": "Через СФР или Госуслуги.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        },
+        {
+          "field": "income_below_pm",
+          "op": "==",
+          "value": true,
+          "reason": "Доход ниже порога"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_child_under_3",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Выплата на ребёнка до 3 лет",
+      "short_description": "Для неработающих родителей, ухаживающих за ребёнком.",
+      "amount": "Фиксированная сумма",
+      "conditions": [
+        "Ребёнок до 3 лет",
+        "Родитель не работает"
+      ],
+      "how_to_apply": "Через СФР.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        },
+        {
+          "field": "employment",
+          "op": "==",
+          "value": "не работаю",
+          "reason": "Вы не работаете"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_childcare_1_5",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Пособие по уходу за ребёнком до 1,5 лет",
+      "short_description": "Для работающих родителей в период отпуска по уходу.",
+      "amount": "40% от среднего заработка",
+      "conditions": [
+        "Ребёнок до 1,5 лет",
+        "Родитель в отпуске по уходу"
+      ],
+      "how_to_apply": "Через работодателя или СФР.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        },
+        {
+          "field": "employment",
+          "op": "in",
+          "value": [
+            "работаю",
+            "работаю и учусь"
+          ],
+          "reason": "Вы работаете"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_regional_maternity_capital",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Региональный материнский капитал",
+      "short_description": "Дополнительная выплата в ряде регионов при рождении третьего ребёнка.",
+      "amount": "Зависит от региона",
+      "conditions": [
+        "Третий ребёнок",
+        "Регион участвует в программе"
+      ],
+      "how_to_apply": "Через региональные органы соцзащиты.",
+      "source_name": "Региональные органы соцзащиты",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 3,
+          "reason": "У вас трое или больше детей"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_large_utility_compensation",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Компенсация ЖКХ многодетным",
+      "short_description": "Скидка на оплату коммунальных услуг для многодетных семей.",
+      "amount": "От 30%",
+      "conditions": [
+        "Трое и более детей",
+        "Льготный статус многодетной семьи"
+      ],
+      "how_to_apply": "Через органы соцзащиты или МФЦ.",
+      "source_name": "Региональные органы соцзащиты",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 3,
+          "reason": "У вас трое или больше детей"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_large_transport",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Бесплатный проезд детям из многодетных",
+      "short_description": "Региональная льгота на проезд для детей из многодетных семей.",
+      "amount": "Зависит от региона",
+      "conditions": [
+        "Трое и более детей",
+        "Регион участвует в программе"
+      ],
+      "how_to_apply": "Через органы соцзащиты.",
+      "source_name": "Региональные органы соцзащиты",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 3,
+          "reason": "У вас трое или больше детей"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_large_university",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Льготы при поступлении в вуз",
+      "short_description": "Дополнительные баллы и квоты для детей из многодетных семей.",
+      "amount": "Не денежная мера",
+      "conditions": [
+        "Трое и более детей",
+        "Ребёнок поступает в вуз"
+      ],
+      "how_to_apply": "Через приёмную комиссию вуза.",
+      "source_name": "Минобрнауки",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 3,
+          "reason": "У вас трое или больше детей"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_child_tax_deduction",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Налоговый вычет на детей",
+      "short_description": "Ежемесячное уменьшение налога на доход для родителей.",
+      "amount": "Зависит от количества детей",
+      "conditions": [
+        "Есть ребёнок",
+        "Родитель платит НДФЛ"
+      ],
+      "how_to_apply": "Через работодателя или ФНС.",
+      "source_name": "ФНС",
+      "source_url": "https://www.nalog.gov.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        },
+        {
+          "field": "employment",
+          "op": "in",
+          "value": [
+            "работаю",
+            "работаю и учусь"
+          ],
+          "reason": "Вы работаете"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_low_income_social_help",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Адресная помощь малоимущим",
+      "short_description": "Региональная материальная помощь семьям с низким доходом.",
+      "amount": "Зависит от региона",
+      "conditions": [
+        "Доход ниже ПМ",
+        "Проживание в регионе программы"
+      ],
+      "how_to_apply": "Через органы соцзащиты или МФЦ.",
+      "source_name": "Региональные органы соцзащиты",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "income_below_pm",
+          "op": "==",
+          "value": true,
+          "reason": "Доход ниже порога"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "relocation_snils",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Получение СНИЛС",
+      "short_description": "Если СНИЛС ещё не оформлен — оформить по новому месту жительства.",
+      "amount": "",
+      "conditions": [
+        "Переезд в новый регион"
+      ],
+      "how_to_apply": "Через СФР, МФЦ или Госуслуги.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "relocation_inn",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Получение ИНН",
+      "short_description": "Оформление ИНН, если его нет или утерян.",
+      "amount": "",
+      "conditions": [
+        "Переезд в новый регион"
+      ],
+      "how_to_apply": "Через ФНС или Госуслуги.",
+      "source_name": "ФНС",
+      "source_url": "https://www.nalog.gov.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "relocation_oms",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Полис ОМС по новому региону",
+      "short_description": "Переоформление полиса обязательного медицинского страхования.",
+      "amount": "",
+      "conditions": [
+        "Переезд в новый регион"
+      ],
+      "how_to_apply": "Через страховую компанию или Госуслуги.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "relocation_resettlement_support",
+      "scenario": "relocation",
+      "kind": "support",
+      "title": "Подъёмные для переселенцев",
+      "short_description": "Единовременная выплата при переезде в рамках программы.",
+      "amount": "Зависит от программы и региона",
+      "conditions": [
+        "Участие в программе переселения"
+      ],
+      "how_to_apply": "Через региональные органы.",
+      "source_name": "МВД России",
+      "source_url": "https://мвд.рф/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "relocation_medical_card",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Прикрепление к поликлинике",
+      "short_description": "Прикрепление к медицинской организации по новому месту жительства.",
+      "amount": "",
+      "conditions": [
+        "Переезд в новый регион"
+      ],
+      "how_to_apply": "Через Госуслуги, портал ЕПГУ или напрямую в поликлинику.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "medical_dispensarization",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Диспансеризация",
+      "short_description": "Профилактический осмотр по полису ОМС.",
+      "amount": "",
+      "conditions": [
+        "Взрослый",
+        "Полис ОМС"
+      ],
+      "how_to_apply": "Через поликлинику или запись на Госуслугах.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "medical_narrow_specialist",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Запись к узкому специалисту",
+      "short_description": "Запись по направлению от терапевта.",
+      "amount": "",
+      "conditions": [
+        "Есть направление"
+      ],
+      "how_to_apply": "Через поликлинику или Госуслуги.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "==",
+          "value": "получил направление",
+          "reason": "Вы получили направление"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "medical_high_tech",
+      "scenario": "medical",
+      "kind": "support",
+      "title": "Высокотехнологичная медицинская помощь",
+      "short_description": "Оформление квоты на ВМП через направление.",
+      "amount": "",
+      "conditions": [
+        "Направление от врача",
+        "Показания к ВМП"
+      ],
+      "how_to_apply": "Через направление в федеральные центры.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "in",
+          "value": [
+            "жду обследование",
+            "получил направление"
+          ],
+          "reason": "Вы внутри медмаршрута"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "medical_rehab",
+      "scenario": "medical",
+      "kind": "support",
+      "title": "Медицинская реабилитация",
+      "short_description": "Восстановительное лечение после болезни или травмы.",
+      "amount": "",
+      "conditions": [
+        "Направление врача",
+        "Медицинские показания"
+      ],
+      "how_to_apply": "Через лечащего врача.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "==",
+          "value": "после выписки",
+          "reason": "Вы указали этап после выписки"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "medical_medicines",
+      "scenario": "medical",
+      "kind": "support",
+      "title": "Лекарственное обеспечение",
+      "short_description": "Льготные лекарства для отдельных категорий граждан.",
+      "amount": "",
+      "conditions": [
+        "Льготный статус",
+        "Назначение врача"
+      ],
+      "how_to_apply": "Через лечащего врача и аптеку по рецепту.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "in",
+          "value": [
+            "после выписки",
+            "жду обследование"
+          ],
+          "reason": "Вы внутри медмаршрута"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "medical_sanatorium",
+      "scenario": "medical",
+      "kind": "support",
+      "title": "Санаторно-курортное лечение",
+      "short_description": "Путёвка на санаторно-курортное лечение по показаниям.",
+      "amount": "",
+      "conditions": [
+        "Медицинские показания",
+        "Льготный статус"
+      ],
+      "how_to_apply": "Через СФР или лечащего врача.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "==",
+          "value": "после выписки",
+          "reason": "Вы указали этап после выписки"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "medical_mse",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Медико-социальная экспертиза",
+      "short_description": "Оформление инвалидности через МСЭ.",
+      "amount": "",
+      "conditions": [
+        "Стойкое нарушение здоровья",
+        "Направление врача"
+      ],
+      "how_to_apply": "Через поликлинику или бюро МСЭ.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [],
+      "missing": []
+    },
+    {
+      "id": "medical_telemedicine",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Телемедицинская консультация",
+      "short_description": "Онлайн-консультация врача по полису ОМС.",
+      "amount": "",
+      "conditions": [
+        "Полис ОМС",
+        "Техническая возможность"
+      ],
+      "how_to_apply": "Через приложения и порталы телемедицины.",
+      "source_name": "Минздрав России",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 4,
+      "rules": [],
+      "missing": []
     }
   ]
 }
