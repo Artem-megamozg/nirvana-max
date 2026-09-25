@@ -100,37 +100,53 @@ def now_iso() -> str:
 def upsert_profile(user_id: str, data: dict[str, Any]):
     conn = get_conn()
 
-    # Дети: если пришёл массив children — используем его,
-    # иначе строим из children_count + children_ages (обратная совместимость)
+    # Текущий профиль — чтобы сохранить поля, которых нет в новых данных
+    current = get_profile(user_id) or {}
+
+    def keep(field, new_value):
+        """Если новое значение None — оставляем старое."""
+        if new_value is None and field in current:
+            return current.get(field)
+        return new_value
+
+    # Дети
     children = data.get("children")
     if children is None:
-        cnt = int(data.get("children_count") or 0)
-        ages = data.get("children_ages") or []
-        children = []
-        for i in range(cnt):
-            age = ages[i] if i < len(ages) else None
-            children.append({"name": "", "age": age})
+        # Если в data вообще нет ключа children — оставляем старых детей
+        if "children" in current and current.get("children"):
+            children = current["children"]
+        else:
+            cnt = int(data.get("children_count") or 0)
+            ages = data.get("children_ages") or []
+            children = []
+            for i in range(cnt):
+                age = ages[i] if i < len(ages) else None
+                children.append({"name": "", "age": age})
 
-    # Вычисляемые поля для движка
     children_count = len(children)
-    children_ages = [c.get("age") for c in children if c.get("age") is not None]
+    children_ages = [
+        c.get("age") for c in children if c.get("age") is not None
+    ]
 
     payload = {
         "user_id": user_id,
-        "region": data.get("region"),
-        "age": data.get("age"),
-        "employment": data.get("employment"),
-        "marital_status": data.get("marital_status"),
-        "income": data.get("income"),
+        "region": keep("region", data.get("region")),
+        "age": keep("age", data.get("age")),
+        "employment": keep("employment", data.get("employment")),
+        "marital_status": keep("marital_status", data.get("marital_status")),
+        "income": keep("income", data.get("income")),
         "children_count": children_count,
         "children_ages": json.dumps(children_ages, ensure_ascii=False),
         "children": json.dumps(children, ensure_ascii=False),
-        "statuses": json.dumps(data.get("statuses", []), ensure_ascii=False),
-        "scenario_id": data.get("scenario_id"),
-        "scenario_specific": json.dumps(data.get("scenario_specific", {}), ensure_ascii=False),
-        "full_name": data.get("full_name"),
-        "phone": data.get("phone"),
-        "about": data.get("about"),
+        "statuses": json.dumps(data.get("statuses", current.get("statuses") or []), ensure_ascii=False),
+        "scenario_id": keep("scenario_id", data.get("scenario_id")),
+        "scenario_specific": json.dumps(
+            data.get("scenario_specific", current.get("scenario_specific") or {}),
+            ensure_ascii=False,
+        ),
+        "full_name": keep("full_name", data.get("full_name")),
+        "phone": keep("phone", data.get("phone")),
+        "about": keep("about", data.get("about")),
         "updated_at": now_iso(),
     }
 

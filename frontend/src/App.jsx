@@ -112,7 +112,6 @@ function App() {
 
   const [scenarios, setScenarios] = useState([])
   const [profile, setProfile] = useState(null)
-  const [profileMeta, setProfileMeta] = useState(null)
   const [profileForm, setProfileForm] =
     useState(emptyProfile)
 
@@ -190,14 +189,7 @@ function App() {
         getTasks(userId),
         getReminders(userId),
         getHistory(userId),
-        fetch(`/api/profile/${encodeURIComponent(userId)}/meta`)
-          .then((r) => r.json())
-          .catch(() => ({ exists: false, meta: null })),
       ])
-
-      if (metaData?.meta) {
-        setProfileMeta(metaData.meta)
-      }
 
       setScenarios(
         scenariosData?.items || []
@@ -295,7 +287,7 @@ function App() {
     setSelectedScenario(scenario)
 
     if (profile) {
-      const filled = {
+      setProfileForm({
         region: profile.region || '',
         age: profile.age || '',
         employment: profile.employment || '',
@@ -309,19 +301,9 @@ function App() {
                 age,
               })),
         statuses: profile.statuses || [],
-      }
-      setProfileForm(filled)
-
-      // Профиль уже полный — сразу к результатам
-      const isComplete =
-        filled.region &&
-        filled.age &&
-        filled.employment
-
-      if (isComplete) {
-        navigate(SCREENS.PROFILE)
-        return
-      }
+      })
+    } else {
+      setProfileForm(emptyProfile)
     }
 
     navigate(SCREENS.PROFILE)
@@ -386,6 +368,10 @@ function App() {
           profileForm.statuses,
         scenario_id:
           selectedScenario.id,
+        // Сохраняем meta-поля, чтобы они не затирались
+        full_name: profile?.full_name || null,
+        phone: profile?.phone || null,
+        about: profile?.about || null,
       }
 
       const saved = await saveProfile(
@@ -661,10 +647,7 @@ function App() {
 
   const profileCompletion =
     useMemo(() => {
-      // 7 полей: 5 из анкеты + 2 из meta
       const total = 7
-
-      // Анкетные поля
       const baseFields = [
         profile?.region,
         profile?.age,
@@ -672,30 +655,22 @@ function App() {
         profile?.income,
       ]
 
-      let completed =
-        baseFields.filter(Boolean).length
+      let completed = baseFields.filter(Boolean).length
 
-      if (
-        profile?.children_count !==
-        undefined
-      ) {
+      if (profile?.children_count !== undefined) {
         completed += 1
       }
 
-      // Meta-поля
-      if (profileMeta?.full_name) {
+      if (profile?.full_name) {
         completed += 1
       }
 
-      if (profileMeta?.phone) {
+      if (profile?.phone) {
         completed += 1
       }
 
-      return Math.min(
-        100,
-        Math.round((completed / total) * 100)
-      )
-    }, [profile, profileMeta])
+      return Math.min(100, Math.round((completed / total) * 100))
+    }, [profile])
 
   if (loading) {
     return (
@@ -746,6 +721,7 @@ function App() {
                 SCREENS.REMINDERS
               )
             }
+            onSelectScenario={selectScenario}
           />
         )}
 
@@ -753,19 +729,10 @@ function App() {
           <MyProfileScreen
             maxUser={maxUser}
             profile={profile}
-            profileMeta={profileMeta}
             userId={userId}
             onBack={goHome}
             onSaved={(updatedProfile) => {
               setProfile(updatedProfile)
-              // Обновим meta, чтобы форма видела свежие данные
-              setProfileMeta((current) => ({
-                ...current,
-                full_name: updatedProfile.full_name,
-                phone: updatedProfile.phone,
-                region: updatedProfile.region,
-                about: updatedProfile.about,
-              }))
             }}
             onToast={showToast}
           />
@@ -1000,6 +967,7 @@ function HomeScreen({
   onProfile,
   onRoute,
   onReminders,
+  onSelectScenario,
 }) {
   const pendingTasks =
     tasks.filter(
@@ -1106,7 +1074,7 @@ function HomeScreen({
               <button
                 key={scenario.id}
                 className="scenario-card"
-                onClick={onStart}
+                onClick={() => onSelectScenario(scenario)}
               >
                 <span className="scenario-icon">
                   {scenario.icon}
@@ -1417,51 +1385,6 @@ function ResultsScreen({
           </p>
         </div>
       </div>
-
-      {profile && (
-        <div className="profile-summary card">
-          <div className="section-heading">
-            <div>
-              <span className="muted-label">
-                ВАШ ПРОФИЛЬ
-              </span>
-
-              <h3>
-                {profile.region}
-              </h3>
-            </div>
-
-            <button
-              className="text-button"
-              onClick={onProfile}
-            >
-              Изменить
-            </button>
-          </div>
-
-          <div className="summary-tags">
-            {profile.children_count >
-              0 && (
-              <span>
-                👨‍👩‍👧 {profile.children_count}{' '}
-                детей
-              </span>
-            )}
-
-            {profile.employment && (
-              <span>
-                💼 {profile.employment}
-              </span>
-            )}
-
-            {profile.age && (
-              <span>
-                {profile.age} лет
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="section-heading results-heading">
         <div>
@@ -1979,12 +1902,15 @@ function RouteScreen({
           </div>
 
           <h3>
-            Активных задач нет
+            {completed.length
+              ? 'Все задачи маршрута выполнены'
+              : 'Активных задач нет'}
           </h3>
 
           <p>
-            Вы можете пройти новый
-            сценарий и собрать маршрут.
+            {completed.length
+              ? 'Вы прошли весь маршрут. Можно проверить другой сценарий.'
+              : 'Вы можете пройти новый сценарий и собрать маршрут.'}
           </p>
 
           <button
@@ -1993,6 +1919,62 @@ function RouteScreen({
           >
             Вернуться домой
           </button>
+        </div>
+      )}
+
+      {completed.length > 0 && (
+        <div className="section-block">
+          <div className="section-heading">
+            <div>
+              <span className="muted-label">
+                ЗАВЕРШЕНО
+              </span>
+
+              <h2>
+                {completed.length} задач
+              </h2>
+            </div>
+          </div>
+
+          <div className="task-list">
+            {completed.map((task) => (
+              <div
+                key={task.id}
+                className="task-card completed"
+              >
+                <div className="task-check">
+                  <span className="check-done">✓</span>
+                </div>
+
+                <div className="task-content">
+                  <span className="task-status muted">
+                    Завершено
+                  </span>
+
+                  <strong>{task.title}</strong>
+
+                  {task.description && (
+                    <p>{task.description}</p>
+                  )}
+
+                  <div className="task-actions">
+                    {recommendations.some(
+                      (item) => item.id === task.measure_id
+                    ) && (
+                      <button
+                        className="small-button ghost"
+                        onClick={() =>
+                          onMeasure(task.measure_id)
+                        }
+                      >
+                        Открыть
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -2302,24 +2284,16 @@ function historyLabel(
 function MyProfileScreen({
   maxUser,
   profile,
-  profileMeta,
   userId,
   onBack,
   onSaved,
   onToast,
 }) {
-  const [form, setForm] = useState({
-    full_name:
-      profileMeta?.full_name ||
-      profile?.full_name ||
-      maxUser?.first_name ||
-      '',
-    phone: profileMeta?.phone || profile?.phone || '',
-    region:
-      profileMeta?.region ||
-      profile?.region ||
-      '',
-    about: profileMeta?.about || profile?.about || '',
+  const [form, setForm] = useState(() => ({
+    full_name: profile?.full_name || maxUser?.first_name || '',
+    phone: profile?.phone || '',
+    region: profile?.region || '',
+    about: profile?.about || '',
     age: profile?.age || '',
     employment: profile?.employment || '',
     marital_status: profile?.marital_status || '',
@@ -2327,57 +2301,35 @@ function MyProfileScreen({
     children:
       profile?.children?.length
         ? profile.children
-        : (profile?.children_ages || []).map((age) => ({
-            name: '',
-            age,
-          })),
-  })
+        : (profile?.children_ages || []).map((age) => ({ name: '', age })),
+  }))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Синхронизируем форму, когда profile/profileMeta обновились извне
+  // Синхронизируем форму при обновлении profile извне
   useEffect(() => {
-    setForm((current) => ({
-      ...current,
-      full_name:
-        profileMeta?.full_name ||
-        profile?.full_name ||
-        current.full_name ||
-        maxUser?.first_name ||
-        '',
-      phone:
-        profileMeta?.phone ||
-        profile?.phone ||
-        current.phone ||
-        '',
-      region:
-        profileMeta?.region ||
-        profile?.region ||
-        current.region ||
-        '',
-      about:
-        profileMeta?.about ||
-        profile?.about ||
-        current.about ||
-        '',
-      age: profile?.age ?? current.age,
-      employment: profile?.employment || current.employment,
-      marital_status:
-        profile?.marital_status || current.marital_status,
-      income: profile?.income ?? current.income,
+    if (!profile) return
+    setForm({
+      full_name: profile.full_name || maxUser?.first_name || '',
+      phone: profile.phone || '',
+      region: profile.region || '',
+      about: profile.about || '',
+      age: profile.age || '',
+      employment: profile.employment || '',
+      marital_status: profile.marital_status || '',
+      income: profile.income || '',
       children:
-        profile?.children?.length
+        profile.children?.length
           ? profile.children
-          : current.children,
-    }))
-  }, [profile, profileMeta, maxUser])
+          : (profile.children_ages || []).map((age) => ({ name: '', age })),
+    })
+  }, [profile, maxUser])
 
   function update(field, value) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }))
-    setSavedAt(null)
   }
 
   async function handleSave() {
@@ -2389,24 +2341,28 @@ function MyProfileScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          full_name: form.full_name,
-          phone: form.phone,
-          region: form.region,
-          about: form.about,
+          full_name: form.full_name || null,
+          phone: form.phone || null,
+          region: form.region || null,
+          about: form.about || null,
           age: form.age ? Number(form.age) : null,
           employment: form.employment || null,
           marital_status: form.marital_status || null,
-          income: form.income === '' ? null : Number(form.income),
+          income: form.income === '' || form.income == null
+            ? null
+            : Number(form.income),
           children: (form.children || []).map((c) => ({
             name: c.name || '',
             age: c.age === '' || c.age == null ? null : Number(c.age),
           })),
         }),
       })
+
       if (!res.ok) {
         const text = await res.text()
         throw new Error(`HTTP ${res.status}: ${text}`)
       }
+
       const data = await res.json()
       if (data?.profile) {
         onSaved?.(data.profile)
@@ -2423,18 +2379,11 @@ function MyProfileScreen({
   return (
     <section className="content">
       <div className="page-heading">
-        <span className="eyebrow">
-          МОЙ ПРОФИЛЬ
-        </span>
-
-        <h1>
-          Личные данные
-        </h1>
-
+        <span className="eyebrow">МОЙ ПРОФИЛЬ</span>
+        <h1>Личные данные</h1>
         <p>
-          Эти данные не влияют на подбор мер —
-          они нужны только для вашего удобства
-          и чтобы не вводить их каждый раз.
+          Эти данные помогают не заполнять анкету каждый раз
+          и точнее подбирать меры поддержки.
         </p>
       </div>
 
@@ -2443,12 +2392,8 @@ function MyProfileScreen({
           {form.full_name?.[0]?.toUpperCase() || 'N'}
         </div>
         <div className="profile-avatar-name">
-          <strong>
-            {form.full_name || 'Без имени'}
-          </strong>
-          <span>
-            ID: {userId}
-          </span>
+          <strong>{form.full_name || 'Без имени'}</strong>
+          <span>ID: {userId}</span>
         </div>
       </div>
 
@@ -2457,7 +2402,7 @@ function MyProfileScreen({
           label="Имя и фамилия"
           value={form.full_name}
           placeholder="Иван Иванов"
-          onChange={(value) => update('full_name', value)}
+          onChange={(v) => update('full_name', v)}
         />
 
         <Field
@@ -2465,14 +2410,14 @@ function MyProfileScreen({
           type="tel"
           value={form.phone}
           placeholder="+7 999 123-45-67"
-          onChange={(value) => update('phone', value)}
+          onChange={(v) => update('phone', v)}
         />
 
         <Field
           label="Регион"
           value={form.region}
           placeholder="Например, Москва"
-          onChange={(value) => update('region', value)}
+          onChange={(v) => update('region', v)}
         />
 
         <label className="field">
@@ -2495,7 +2440,7 @@ function MyProfileScreen({
             type="number"
             value={form.age}
             placeholder="30"
-            onChange={(value) => update('age', value)}
+            onChange={(v) => update('age', v)}
           />
 
           <SelectField
@@ -2507,7 +2452,7 @@ function MyProfileScreen({
               'учусь',
               'работаю и учусь',
             ]}
-            onChange={(value) => update('employment', value)}
+            onChange={(v) => update('employment', v)}
           />
         </div>
 
@@ -2516,7 +2461,7 @@ function MyProfileScreen({
           type="number"
           value={form.income}
           placeholder="Например, 25000"
-          onChange={(value) => update('income', value)}
+          onChange={(v) => update('income', v)}
         />
 
         <ChildrenEditor
@@ -2527,11 +2472,8 @@ function MyProfileScreen({
         <SelectField
           label="Семейное положение"
           value={form.marital_status}
-          options={[
-            'женат/замужем',
-            'не женат/не замужем',
-          ]}
-          onChange={(value) => update('marital_status', value)}
+          options={['женат/замужем', 'не женат/не замужем']}
+          onChange={(v) => update('marital_status', v)}
         />
       </div>
 
@@ -2551,8 +2493,6 @@ function MyProfileScreen({
       >
         {saving ? 'Сохраняем...' : 'Сохранить'}
       </button>
-
-
 
       <button
         className="link-button full"
