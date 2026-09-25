@@ -134,6 +134,7 @@ function App() {
     useState(false)
 
   const [error, setError] = useState('')
+  const [toast, setToast] = useState(null)
 
   const [explanation, setExplanation] =
     useState('')
@@ -246,6 +247,10 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function showToast(message, type = 'success') {
+    setToast({ message, type })
   }
 
   function navigate(nextScreen) {
@@ -417,12 +422,15 @@ function App() {
         historyData?.items || []
       )
 
+      haptic('success')
+      showToast('Профиль сохранён')
       navigate(SCREENS.RESULTS)
     } catch (err) {
       setError(
         err.message ||
         'Не удалось сохранить профиль.'
       )
+      showToast('Не удалось сохранить профиль', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -515,12 +523,14 @@ function App() {
         tasksData?.items || []
       )
 
+      showToast('Добавлено в маршрут')
       navigate(SCREENS.ROUTE)
     } catch (err) {
       setError(
         err.message ||
         'Не удалось создать задачу.'
       )
+      showToast('Не удалось добавить в маршрут', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -544,11 +554,13 @@ function App() {
       )
 
       haptic('success')
+      showToast('Напоминание добавлено')
     } catch (err) {
       setError(
         err.message ||
         'Не удалось создать напоминание.'
       )
+      showToast('Не удалось создать напоминание', 'error')
     } finally {
       setActionLoading(false)
     }
@@ -571,11 +583,13 @@ function App() {
       )
 
       haptic('success')
+      showToast('Задача завершена')
     } catch (err) {
       setError(
         err.message ||
         'Не удалось завершить задачу.'
       )
+      showToast('Не удалось завершить задачу', 'error')
     }
   }
 
@@ -721,7 +735,7 @@ function App() {
                 SCREENS.SCENARIOS
               )
             }
-            onProfile={editProfile}
+            onProfile={openProfileTab}
             onRoute={() =>
               navigate(
                 SCREENS.ROUTE
@@ -742,7 +756,18 @@ function App() {
             profileMeta={profileMeta}
             userId={userId}
             onBack={goHome}
-            onSaved={(meta) => setProfileMeta(meta)}
+            onSaved={(updatedProfile) => {
+              setProfile(updatedProfile)
+              // Обновим meta, чтобы форма видела свежие данные
+              setProfileMeta((current) => ({
+                ...current,
+                full_name: updatedProfile.full_name,
+                phone: updatedProfile.phone,
+                region: updatedProfile.region,
+                about: updatedProfile.about,
+              }))
+            }}
+            onToast={showToast}
           />
         )}
 
@@ -862,6 +887,14 @@ function App() {
           }
           onProfile={openProfileTab}
         />
+
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </div>
     </AppShell>
   )
@@ -2273,6 +2306,7 @@ function MyProfileScreen({
   userId,
   onBack,
   onSaved,
+  onToast,
 }) {
   const [form, setForm] = useState({
     full_name:
@@ -2299,8 +2333,44 @@ function MyProfileScreen({
           })),
   })
   const [saving, setSaving] = useState(false)
-  const [savedAt, setSavedAt] = useState(null)
   const [error, setError] = useState('')
+
+  // Синхронизируем форму, когда profile/profileMeta обновились извне
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      full_name:
+        profileMeta?.full_name ||
+        profile?.full_name ||
+        current.full_name ||
+        maxUser?.first_name ||
+        '',
+      phone:
+        profileMeta?.phone ||
+        profile?.phone ||
+        current.phone ||
+        '',
+      region:
+        profileMeta?.region ||
+        profile?.region ||
+        current.region ||
+        '',
+      about:
+        profileMeta?.about ||
+        profile?.about ||
+        current.about ||
+        '',
+      age: profile?.age ?? current.age,
+      employment: profile?.employment || current.employment,
+      marital_status:
+        profile?.marital_status || current.marital_status,
+      income: profile?.income ?? current.income,
+      children:
+        profile?.children?.length
+          ? profile.children
+          : current.children,
+    }))
+  }, [profile, profileMeta, maxUser])
 
   function update(field, value) {
     setForm((current) => ({
@@ -2338,12 +2408,13 @@ function MyProfileScreen({
         throw new Error(`HTTP ${res.status}: ${text}`)
       }
       const data = await res.json()
-      if (data?.meta) {
-        onSaved?.(data.meta)
+      if (data?.profile) {
+        onSaved?.(data.profile)
       }
-      setSavedAt(new Date())
+      onToast?.('Профиль сохранён')
     } catch (err) {
       setError(err.message || 'Не удалось сохранить')
+      onToast?.('Не удалось сохранить профиль', 'error')
     } finally {
       setSaving(false)
     }
@@ -2481,11 +2552,7 @@ function MyProfileScreen({
         {saving ? 'Сохраняем...' : 'Сохранить'}
       </button>
 
-      {savedAt && (
-        <div className="saved-note">
-          ✓ Сохранено в {savedAt.toLocaleTimeString('ru-RU')}
-        </div>
-      )}
+
 
       <button
         className="link-button full"
@@ -2585,6 +2652,25 @@ function ChildrenEditor({ children, onChange }) {
           </button>
         </div>
       ))}
+    </div>
+  )
+}
+
+
+function Toast({ message, type = 'success', onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose()
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div className={`toast toast-${type}`}>
+      <span className="toast-icon">
+        {type === 'success' ? '✓' : type === 'error' ? '!' : 'i'}
+      </span>
+      <span className="toast-text">{message}</span>
     </div>
   )
 }
