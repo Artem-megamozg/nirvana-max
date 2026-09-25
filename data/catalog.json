@@ -1,0 +1,407 @@
+{
+  "scenarios": [
+    {
+      "id": "family",
+      "title": "Семья и дети",
+      "icon": "👨‍👩‍👧‍👦",
+      "description": "Проверить меры поддержки для семьи и детей",
+      "questions": [
+        {
+          "id": "region",
+          "title": "Ваш регион",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "age",
+          "title": "Ваш возраст",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "children_count",
+          "title": "Количество детей",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "children_ages",
+          "title": "Возраст детей",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "income",
+          "title": "Доход на члена семьи в месяц",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "employment",
+          "title": "Занятость",
+          "type": "select",
+          "options": [
+            "работаю",
+            "не работаю",
+            "учусь",
+            "работаю и учусь"
+          ],
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "relocation",
+      "title": "Переезд",
+      "icon": "🏠",
+      "description": "Проверить действия и поддержку после переезда",
+      "questions": [
+        {
+          "id": "region",
+          "title": "Регион, в который вы переехали",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "age",
+          "title": "Ваш возраст",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "employment",
+          "title": "Занятость",
+          "type": "select",
+          "options": [
+            "работаю",
+            "не работаю",
+            "учусь",
+            "работаю и учусь"
+          ],
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "medical",
+      "title": "Медицинский маршрут",
+      "icon": "🏥",
+      "description": "Собрать следующий понятный шаг после медицинской ситуации",
+      "questions": [
+        {
+          "id": "region",
+          "title": "Ваш регион",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "age",
+          "title": "Ваш возраст",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "medical_stage",
+          "title": "На каком этапе вы сейчас?",
+          "type": "select",
+          "options": [
+            "получил направление",
+            "жду обследование",
+            "жду приём врача",
+            "после выписки",
+            "нужен следующий этап"
+          ],
+          "required": true
+        }
+      ]
+    }
+  ],
+  "measures": [
+    {
+      "id": "family_unified_allowance",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Единое пособие",
+      "short_description": "Проверка права семьи на единое пособие.",
+      "amount": "Размер зависит от условий семьи и региона",
+      "conditions": [
+        "Есть ребёнок",
+        "Доход и имущественные критерии соответствуют условиям меры"
+      ],
+      "how_to_apply": "Через Госуслуги, СФР или МФЦ в зависимости от конкретной ситуации",
+      "source_name": "Модельные данные MVP",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_two_plus_children",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Меры поддержки семей с двумя и более детьми",
+      "short_description": "Подбор доступных семейных мер поддержки.",
+      "amount": "Зависит от конкретной меры",
+      "conditions": [
+        "Двое и более детей",
+        "Условия конкретной меры"
+      ],
+      "how_to_apply": "Через Госуслуги, СФР или региональные сервисы",
+      "source_name": "Модельные данные MVP",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 2,
+          "reason": "У вас двое или больше детей"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_low_income",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Дополнительные меры для семей с невысоким доходом",
+      "short_description": "Проверка дополнительных мер социальной поддержки.",
+      "amount": "Зависит от конкретной меры",
+      "conditions": [
+        "Доход ниже выбранного порога",
+        "Дополнительные критерии конкретной меры"
+      ],
+      "how_to_apply": "Госуслуги, СФР или МФЦ",
+      "source_name": "Модельные данные MVP",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "income_below_pm",
+          "op": "==",
+          "value": true,
+          "reason": "Доход ниже установленного порога"
+        }
+      ],
+      "missing": [
+        "Проверить подтверждение дохода"
+      ]
+    },
+    {
+      "id": "family_large",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Региональные меры для многодетных семей",
+      "short_description": "Проверка региональных льгот и поддержки.",
+      "amount": "Зависит от региона",
+      "conditions": [
+        "Требования региона",
+        "Статус многодетной семьи"
+      ],
+      "how_to_apply": "Региональный портал или МФЦ",
+      "source_name": "Модельные данные MVP",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 3,
+          "reason": "У вас трое или больше детей"
+        }
+      ],
+      "missing": [
+        "Проверить региональные критерии"
+      ]
+    },
+    {
+      "id": "family_documents",
+      "scenario": "family",
+      "kind": "route",
+      "title": "Подготовка документов семьи",
+      "short_description": "Соберите основные документы до подачи заявления.",
+      "amount": "",
+      "conditions": [
+        "Документы родителей",
+        "Документы детей",
+        "Сведения о доходах при необходимости"
+      ],
+      "how_to_apply": "Подготовить документы до подачи заявления",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "relocation_registration",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Проверить регистрацию и документы",
+      "short_description": "Проверьте, какие действия после переезда уже выполнены.",
+      "amount": "",
+      "conditions": [
+        "Проверить регистрацию",
+        "Проверить актуальность документов"
+      ],
+      "how_to_apply": "Госуслуги, МФЦ или соответствующее ведомство",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 1,
+      "rules": [],
+      "missing": [
+        "Проверить регистрацию по новому месту"
+      ]
+    },
+    {
+      "id": "relocation_medical",
+      "scenario": "relocation",
+      "kind": "route",
+      "title": "Проверить медицинский маршрут",
+      "short_description": "После переезда проверьте доступность медицинских сервисов.",
+      "amount": "",
+      "conditions": [
+        "Проверить прикрепление",
+        "Проверить доступность медицинских документов"
+      ],
+      "how_to_apply": "Госуслуги и региональные медицинские сервисы",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [],
+      "missing": [
+        "Проверить прикрепление к поликлинике"
+      ]
+    },
+    {
+      "id": "relocation_support",
+      "scenario": "relocation",
+      "kind": "support",
+      "title": "Региональные меры поддержки после переезда",
+      "short_description": "Проверка поддержки с учётом нового региона.",
+      "amount": "Зависит от региона",
+      "conditions": [
+        "Правила региона",
+        "Статус пользователя"
+      ],
+      "how_to_apply": "Региональные сервисы или МФЦ",
+      "source_name": "Модельные данные MVP",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [],
+      "missing": [
+        "Проверить региональные условия"
+      ]
+    },
+    {
+      "id": "medical_referral",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Маршрут после получения направления",
+      "short_description": "Понятный следующий шаг после получения направления.",
+      "amount": "",
+      "conditions": [
+        "Проверить направление",
+        "Записаться на следующий этап"
+      ],
+      "how_to_apply": "Региональный медицинский сервис",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "==",
+          "value": "получил направление",
+          "reason": "Вы указали, что уже получили направление"
+        }
+      ],
+      "missing": [
+        "Проверить дату следующего этапа"
+      ]
+    },
+    {
+      "id": "medical_examination",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Следующий этап обследования",
+      "short_description": "Помогает не потерять следующий шаг в маршруте.",
+      "amount": "",
+      "conditions": [
+        "Проверить дату обследования",
+        "Подготовить необходимые документы"
+      ],
+      "how_to_apply": "Региональный медицинский сервис",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "in",
+          "value": [
+            "жду обследование",
+            "жду приём врача"
+          ],
+          "reason": "Вы уже находитесь внутри медицинского маршрута"
+        }
+      ],
+      "missing": [
+        "Проверить дату визита"
+      ]
+    },
+    {
+      "id": "medical_discharge",
+      "scenario": "medical",
+      "kind": "route",
+      "title": "Маршрут после выписки",
+      "short_description": "Проверка следующих действий после выписки.",
+      "amount": "",
+      "conditions": [
+        "Проверить выписку",
+        "Проверить назначенный следующий этап",
+        "Запланировать дальнейшие действия"
+      ],
+      "how_to_apply": "Медицинская организация и региональные сервисы",
+      "source_name": "Модельный пользовательский маршрут",
+      "source_url": "https://www.gosuslugi.ru/",
+      "data_status": "model",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "medical_stage",
+          "op": "==",
+          "value": "после выписки",
+          "reason": "Вы указали этап после выписки"
+        }
+      ],
+      "missing": [
+        "Проверить дату следующего действия"
+      ]
+    }
+  ]
+}
