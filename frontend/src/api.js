@@ -176,3 +176,14 @@ export async function explainMeasure(
     }),
   })
 }
+
+export async function deleteReminder(reminderId, userId) {
+  const res = await fetch(
+    `/api/reminders/${encodeURIComponent(reminderId)}?user_id=${encodeURIComponent(userId)}`,
+    { method: 'DELETE' }
+  )
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+  return res.json()
+}

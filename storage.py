@@ -524,3 +524,15 @@ def get_profile_meta(user_id: str) -> dict | None:
         "about": profile.get("about"),
         "updated_at": profile.get("updated_at"),
     }
+
+
+def delete_reminder(reminder_id: int, user_id: str) -> bool:
+    conn = get_conn()
+    cur = conn.execute(
+        "DELETE FROM reminders WHERE id = ? AND user_id = ?",
+        (reminder_id, user_id),
+    )
+    conn.commit()
+    deleted = cur.rowcount > 0
+    conn.close()
+    return deleted

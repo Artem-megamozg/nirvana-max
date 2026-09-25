@@ -8,6 +8,7 @@ import {
   completeTask,
   createReminder,
   createTask,
+  deleteReminder,
   explainMeasure,
   getHistory,
   getMaxUser,
@@ -551,6 +552,19 @@ function App() {
     }
   }
 
+  async function removeReminder(reminderId) {
+    try {
+      await deleteReminder(reminderId, userId)
+      const reminderData = await getReminders(userId)
+      setReminders(reminderData?.items || [])
+      haptic('success')
+      showToast('Напоминание удалено')
+    } catch (err) {
+      setError(err.message || 'Не удалось удалить напоминание')
+      showToast('Не удалось удалить', 'error')
+    }
+  }
+
   async function markTaskDone(
     taskId
   ) {
@@ -835,9 +849,11 @@ function App() {
         {screen === SCREENS.REMINDERS && (
           <RemindersScreen
             reminders={reminders}
+            tasks={tasks}
             onAdd={() =>
               addReminder()
             }
+            onDelete={removeReminder}
             loading={
               actionLoading
             }
@@ -2060,29 +2076,50 @@ function RouteScreen({
 function RemindersScreen({
   reminders,
   onAdd,
+  onDelete,
   loading,
+  tasks = [],
 }) {
-  const active =
-    reminders.filter(
-      (item) =>
-        item.active
-    )
+  const active = reminders.filter((item) => item.active)
+
+  // Индекс задач для быстрого поиска по task_id
+  const taskById = {}
+  tasks.forEach((t) => {
+    taskById[t.id] = t
+  })
+
+  function reminderTitle(reminder) {
+    if (reminder.task_id) {
+      const task = taskById[reminder.task_id]
+      if (task) {
+        return task.title
+      }
+      return 'Напоминание по задаче'
+    }
+    return 'Напоминание'
+  }
+
+  function reminderDescription(reminder) {
+    if (reminder.task_id) {
+      const task = taskById[reminder.task_id]
+      if (task?.description) {
+        return task.description
+      }
+      return 'Связано с задачей в маршруте'
+    }
+    return 'Общее напоминание'
+  }
 
   return (
     <section className="content">
       <div className="page-heading">
-        <span className="eyebrow">
-          НАПОМИНАНИЯ
-        </span>
+        <span className="eyebrow">НАПОМИНАНИЯ</span>
 
-        <h1>
-          Nirvana сама напомнит.
-        </h1>
+        <h1>Nirvana сама напомнит.</h1>
 
         <p>
-          Напоминания приходят в
-          чат MAX, чтобы не нужно было
-          снова искать нужный сервис.
+          Напоминания приходят в чат MAX, чтобы не нужно
+          было снова искать нужный сервис.
         </p>
       </div>
 
@@ -2101,37 +2138,38 @@ function RemindersScreen({
               key={reminder.id}
               className="reminder-card"
             >
-              <div className="reminder-icon">
-                ◷
-              </div>
+              <div className="reminder-icon">◷</div>
 
-              <div>
-                <strong>
-                  Напоминание
-                </strong>
+              <div className="reminder-body">
+                <strong>{reminderTitle(reminder)}</strong>
 
-                <span>
-                  {formatDate(
-                    reminder.remind_at
-                  )}
+                <span className="reminder-description">
+                  {reminderDescription(reminder)}
+                </span>
+
+                <span className="reminder-date">
+                  Сработает: {formatDate(reminder.remind_at)}
                 </span>
               </div>
+
+              <button
+                className="reminder-remove"
+                onClick={() => onDelete(reminder.id)}
+                aria-label="Удалить"
+              >
+                ×
+              </button>
             </div>
           ))
         ) : (
           <div className="empty-card">
-            <div className="empty-icon">
-              ◷
-            </div>
+            <div className="empty-icon">◷</div>
 
-            <h3>
-              Пока нет активных
-              напоминаний
-            </h3>
+            <h3>Пока нет активных напоминаний</h3>
 
             <p>
-              Добавьте его прямо из
-              карточки нужного шага.
+              Добавьте его прямо из карточки нужного шага
+              или кнопкой выше.
             </p>
           </div>
         )}

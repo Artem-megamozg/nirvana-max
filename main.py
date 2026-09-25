@@ -21,6 +21,7 @@ from storage import (
     complete_task,
     create_reminder,
     create_task,
+    delete_reminder,
     get_checklist_state,
     get_due_reminders,
     get_history,
@@ -560,6 +561,14 @@ async def reminder(data: ReminderRequest):
 @app.get("/api/reminders")
 async def reminders(user_id: str = Query(...)):
     return {"items": get_reminders(user_id)}
+
+
+@app.delete("/api/reminders/{reminder_id}")
+async def reminder_delete(reminder_id: int, user_id: str = Query(...)):
+    deleted = delete_reminder(reminder_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    return {"ok": True, "id": reminder_id}
 
 
 # ---------- История и дашборд ----------
