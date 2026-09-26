@@ -15,6 +15,9 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY certs/ /usr/local/share/ca-certificates/russian-trusted/
+RUN update-ca-certificates
+
 COPY . .
 
 EXPOSE 8000

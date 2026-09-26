@@ -2,6 +2,7 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 import httpx
 from dotenv import load_dotenv
@@ -46,6 +47,18 @@ MAX_WEBAPP_URL = os.getenv(
 )
 MAX_BOT_USERNAME = os.getenv("MAX_BOT_USERNAME", "t687_hakaton_max_bot")
 MAX_API = "https://platform-api2.max.ru"
+
+# Системный CA-бандл. В Dockerfile сертификаты Минцифры уже
+# добавлены в /etc/ssl/certs через update-ca-certificates,
+# поэтому системный бандл доверяет platform-api2.max.ru.
+import os as _os
+CA_BUNDLE = _os.environ.get(
+    "SSL_CERT_FILE",
+    "/etc/ssl/certs/ca-certificates.crt",
+)
+if not Path(CA_BUNDLE).exists():
+    print(f"⚠️  CA-бандл не найден: {CA_BUNDLE}")
+    CA_BUNDLE = None
 
 reminder_worker_task = None
 
@@ -159,7 +172,11 @@ async def send_message(
             }
         ]
 
-    async with httpx.AsyncClient(timeout=20) as client:
+    client_kwargs = {"timeout": 20}
+    if CA_BUNDLE:
+        client_kwargs["verify"] = CA_BUNDLE
+
+    async with httpx.AsyncClient(**client_kwargs) as client:
         response = await client.post(
             f"{MAX_API}/messages",
             params={"user_id": user_id},
