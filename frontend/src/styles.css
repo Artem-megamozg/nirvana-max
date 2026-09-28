@@ -2198,3 +2198,123 @@ button:disabled {
     border-top-color: rgba(122, 92, 250, 0.2);
   }
 }
+
+/* === Source card === */
+
+.source-card {
+  background: #fff;
+  border: 1px solid #e5e5ef;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.source-card-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #6b6b7b;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.source-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f5;
+  font-size: 14px;
+}
+
+.source-row:last-of-type {
+  border-bottom: none;
+}
+
+.source-label {
+  color: #6b6b7b;
+  flex-shrink: 0;
+}
+
+.source-value {
+  color: #1a1a1a;
+  text-align: right;
+  font-weight: 500;
+}
+
+.source-link {
+  color: #6a3df5;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: right;
+}
+
+.source-status {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.source-status.model {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.source-status.verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.source-disclaimer {
+  font-size: 12px;
+  color: #9a9aa8;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e5ef;
+  line-height: 1.4;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .source-card {
+    background: #1f1f2a;
+    border-color: #333344;
+  }
+
+  .source-card-title {
+    color: #9a9aa8;
+  }
+
+  .source-row {
+    border-bottom-color: #333344;
+  }
+
+  .source-label {
+    color: #9a9aa8;
+  }
+
+  .source-value {
+    color: #f0f0f5;
+  }
+
+  .source-status.model {
+    background: #4a3d1a;
+    color: #fbbf24;
+  }
+
+  .source-status.verified {
+    background: #1a3a2a;
+    color: #34d399;
+  }
+
+  .source-disclaimer {
+    color: #7a7a8a;
+    border-top-color: #333344;
+  }
+}

@@ -1780,14 +1780,61 @@ function MeasureScreen({
         )}
       </div>
 
-      <div className="source-note">
-        Источник: {measure.source_name}
-        <br />
-        Статус данных:{' '}
-        {measure.data_status ===
-        'model'
-          ? 'модельные данные MVP'
-          : 'проверенные данные'}
+      <div className="source-card">
+        <div className="source-card-title">
+          ИСТОЧНИК И АКТУАЛЬНОСТЬ
+        </div>
+
+        <div className="source-row">
+          <span className="source-label">Источник</span>
+          <span className="source-value">
+            {measure.source_name || 'Не указан'}
+          </span>
+        </div>
+
+        {measure.source_url && (
+          <div className="source-row">
+            <span className="source-label">Ссылка</span>
+            <button
+              className="source-link"
+              onClick={() => openExternal(measure.source_url)}
+            >
+              {measure.source_url.replace(/^https?:\/\//, '').split('/')[0]} ↗
+            </button>
+          </div>
+        )}
+
+        <div className="source-row">
+          <span className="source-label">Территория</span>
+          <span className="source-value">
+            {measure.territory || 'Не указана'}
+          </span>
+        </div>
+
+        <div className="source-row">
+          <span className="source-label">Актуальность</span>
+          <span className="source-value">
+            {measure.source_date || 'Не указана'}
+          </span>
+        </div>
+
+        <div className="source-row">
+          <span className="source-label">Статус данных</span>
+          <span
+            className={
+              'source-status ' +
+              (measure.data_status === 'model' ? 'model' : 'verified')
+            }
+          >
+            {measure.data_status === 'model'
+              ? 'модельные данные MVP'
+              : 'проверенные данные'}
+          </span>
+        </div>
+
+        <div className="source-disclaimer">
+          Проверьте актуальность на официальном источнике перед подачей.
+        </div>
       </div>
     </section>
   )

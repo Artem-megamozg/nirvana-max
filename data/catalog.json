@@ -141,7 +141,9 @@
           "reason": "У вас есть ребёнок"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_two_plus_children",
@@ -167,7 +169,9 @@
           "reason": "У вас двое или больше детей"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_low_income",
@@ -195,7 +199,9 @@
       ],
       "missing": [
         "Проверить подтверждение дохода"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_large",
@@ -223,7 +229,9 @@
       ],
       "missing": [
         "Проверить региональные критерии"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_documents",
@@ -250,7 +258,9 @@
           "reason": "У вас есть ребёнок"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "relocation_registration",
@@ -271,7 +281,9 @@
       "rules": [],
       "missing": [
         "Проверить регистрацию по новому месту"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_medical",
@@ -292,7 +304,9 @@
       "rules": [],
       "missing": [
         "Проверить прикрепление к поликлинике"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_support",
@@ -313,7 +327,9 @@
       "rules": [],
       "missing": [
         "Проверить региональные условия"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "medical_referral",
@@ -341,7 +357,9 @@
       ],
       "missing": [
         "Проверить дату следующего этапа"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_examination",
@@ -372,7 +390,9 @@
       ],
       "missing": [
         "Проверить дату визита"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_discharge",
@@ -401,7 +421,9 @@
       ],
       "missing": [
         "Проверить дату следующего действия"
-      ]
+      ],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_maternity_capital",
@@ -427,7 +449,9 @@
           "reason": "У вас есть ребёнок"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_maternity_capital_monthly",
@@ -459,7 +483,9 @@
           "reason": "Доход ниже порога"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_child_under_3",
@@ -491,7 +517,9 @@
           "reason": "Вы не работаете"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_childcare_1_5",
@@ -526,7 +554,9 @@
           "reason": "Вы работаете"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_regional_maternity_capital",
@@ -552,7 +582,9 @@
           "reason": "У вас трое или больше детей"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_large_utility_compensation",
@@ -578,7 +610,9 @@
           "reason": "У вас трое или больше детей"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_large_transport",
@@ -604,7 +638,9 @@
           "reason": "У вас трое или больше детей"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_large_university",
@@ -630,7 +666,9 @@
           "reason": "У вас трое или больше детей"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_child_tax_deduction",
@@ -665,7 +703,9 @@
           "reason": "Вы работаете"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_low_income_social_help",
@@ -691,7 +731,9 @@
           "reason": "Доход ниже порога"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "relocation_snils",
@@ -709,7 +751,9 @@
       "data_status": "model",
       "priority": 2,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_inn",
@@ -727,7 +771,9 @@
       "data_status": "model",
       "priority": 3,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_oms",
@@ -745,7 +791,9 @@
       "data_status": "model",
       "priority": 2,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_resettlement_support",
@@ -763,7 +811,9 @@
       "data_status": "model",
       "priority": 3,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "relocation_medical_card",
@@ -781,7 +831,9 @@
       "data_status": "model",
       "priority": 2,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Регионы РФ"
     },
     {
       "id": "medical_dispensarization",
@@ -800,7 +852,9 @@
       "data_status": "model",
       "priority": 3,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_narrow_specialist",
@@ -825,7 +879,9 @@
           "reason": "Вы получили направление"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_high_tech",
@@ -854,7 +910,9 @@
           "reason": "Вы внутри медмаршрута"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_rehab",
@@ -880,7 +938,9 @@
           "reason": "Вы указали этап после выписки"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_medicines",
@@ -909,7 +969,9 @@
           "reason": "Вы внутри медмаршрута"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_sanatorium",
@@ -935,7 +997,9 @@
           "reason": "Вы указали этап после выписки"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_mse",
@@ -954,7 +1018,9 @@
       "data_status": "model",
       "priority": 2,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "medical_telemedicine",
@@ -973,7 +1039,9 @@
       "data_status": "model",
       "priority": 4,
       "rules": [],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_pregnancy_support",
@@ -999,7 +1067,9 @@
           "reason": "Вы указали беременность"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_birth_support",
@@ -1025,7 +1095,9 @@
           "reason": "У вас есть ребёнок"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     },
     {
       "id": "family_maternity_benefit_early",
@@ -1051,7 +1123,9 @@
           "reason": "Вы указали беременность"
         }
       ],
-      "missing": []
+      "missing": [],
+      "source_date": "сентябрь 2026",
+      "territory": "Вся Россия"
     }
   ]
 }
