@@ -1343,11 +1343,19 @@ function ProfileScreen({
           )}
 
           {medical && (
-            <InfoBlock>
-              Мы не ставим диагнозы и не интерпретируем
-              результаты обследований. Здесь мы строим
-              только административный маршрут.
-            </InfoBlock>
+            <div className="medical-disclaimer">
+              <div className="medical-disclaimer-icon">⚠️</div>
+              <div className="medical-disclaimer-body">
+                <strong>Nirvana не заменяет врача</strong>
+                <p>
+                  Мы не ставим диагнозы, не интерпретируем
+                  симптомы и результаты обследований, не назначаем
+                  и не корректируем лечение. Здесь мы строим
+                  только административный маршрут: куда обратиться,
+                  что подготовить и в каком порядке.
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -1379,6 +1387,19 @@ function ResultsScreen({
 }) {
   return (
     <section className="content">
+      {scenario?.id === 'medical' && (
+        <div className="medical-disclaimer compact">
+          <div className="medical-disclaimer-icon">⚠️</div>
+          <div className="medical-disclaimer-body">
+            <strong>Только административный маршрут</strong>
+            <p>
+              Nirvana не ставит диагнозы и не интерпретирует
+              результаты. Все медицинские решения — с вашим врачом.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="result-hero">
         <div className="success-icon">
           ✓
