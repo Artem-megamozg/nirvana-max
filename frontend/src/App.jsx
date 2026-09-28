@@ -1505,6 +1505,11 @@ function ResultsScreen({
         </div>
       )}
 
+      <SavingsBlock
+        recommendations={recommendations}
+        scenario={scenario}
+      />
+
       <button
         className="route-preview"
         onClick={onRoute}
@@ -2773,6 +2778,65 @@ function RegionAutocomplete({ value, onChange, placeholder = 'Например, 
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+
+
+function SavingsBlock({ recommendations, scenario }) {
+  if (!recommendations || recommendations.length === 0) {
+    return null
+  }
+
+  // Оценки — гипотеза, зависит от числа мер
+  const count = recommendations.length
+  const savedMinutes = Math.min(15 + count * 8, 90)
+  const savedTrips = Math.max(1, Math.round(count / 2))
+
+  return (
+    <div className="savings-block">
+      <div className="savings-title">
+        ЧТО ВЫ СЭКОНОМИЛИ
+      </div>
+
+      <div className="savings-list">
+        <div className="savings-row">
+          <span className="savings-icon">⏱</span>
+          <div>
+            <strong>~{savedMinutes} минут поиска</strong>
+            <span>
+              самостоятельное изучение источников заняло бы
+              примерно столько времени
+            </span>
+          </div>
+        </div>
+
+        <div className="savings-row">
+          <span className="savings-icon">📋</span>
+          <div>
+            <strong>{savedTrips} обращения в ведомства</strong>
+            <span>
+              готовый чек-лист документов экономит походы в МФЦ
+            </span>
+          </div>
+        </div>
+
+        <div className="savings-row">
+          <span className="savings-icon">🎯</span>
+          <div>
+            <strong>{count} {count === 1 ? 'мера' : 'мер'} в маршруте</strong>
+            <span>
+              можно начинать оформление прямо сейчас
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="savings-note">
+        Оценка основана на количестве подобранных мер.
+        Требует подтверждения на пилоте.
+      </div>
     </div>
   )
 }

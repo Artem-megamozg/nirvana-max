@@ -2118,3 +2118,83 @@ button:disabled {
   margin: 16px 0;
   text-align: center;
 }
+
+/* === SavingsBlock === */
+
+.savings-block {
+  background: linear-gradient(135deg, #f7f4ff, #eef0ff);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(122, 92, 250, 0.12);
+}
+
+.savings-title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: #6a3df5;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.savings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.savings-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.savings-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.savings-row strong {
+  display: block;
+  font-size: 15px;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+
+.savings-row span {
+  font-size: 13px;
+  color: #6b6b7b;
+  line-height: 1.4;
+}
+
+.savings-note {
+  font-size: 11px;
+  color: #9a9aa8;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(122, 92, 250, 0.1);
+  line-height: 1.4;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .savings-block {
+    background: linear-gradient(135deg, #1f1a33, #1a1a2e);
+    border-color: rgba(122, 92, 250, 0.25);
+  }
+
+  .savings-row strong {
+    color: #f0f0f5;
+  }
+
+  .savings-row span {
+    color: #9a9aa8;
+  }
+
+  .savings-note {
+    color: #7a7a8a;
+    border-top-color: rgba(122, 92, 250, 0.2);
+  }
+}
