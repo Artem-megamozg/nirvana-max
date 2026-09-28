@@ -662,6 +662,57 @@ async def explain(data: ExplainRequest):
     return {"text": explanation, "source": "rules_engine"}
 
 
+# ---------- Проактивные ответы ----------
+
+def build_start_reply(user_id: str) -> str:
+    """
+    Возвращает текст для ответа на /start.
+    Если профиль есть — персонализированное приветствие,
+    если нет — стандартное.
+    """
+    profile = get_profile(user_id)
+
+    if not profile:
+        return (
+            "Привет! 👋\n\n"
+            "Я помогу разобраться, какие меры поддержки вам положены, "
+            "что подготовить и какой следующий шаг.\n\n"
+            "Начнём с короткого профиля."
+        )
+
+    tasks = get_tasks(user_id) or []
+    pending = [t for t in tasks if t.get("status") != "completed"]
+
+    reminders = get_reminders(user_id) or []
+    active_reminders = [r for r in reminders if r.get("active")]
+
+    full_name = profile.get("full_name") or ""
+    first_name = full_name.split()[0] if full_name else ""
+
+    lines = []
+    if first_name:
+        lines.append(f"С возвращением, {first_name}! 👋")
+    else:
+        lines.append("С возвращением! 👋")
+
+    lines.append("")
+
+    if pending:
+        word = "задача" if len(pending) == 1 else "задач"
+        lines.append(f"📋 У вас {len(pending)} активных {word} в маршруте.")
+
+    if active_reminders:
+        word = "напоминание" if len(active_reminders) == 1 else "напоминания"
+        lines.append(f"⏰ Активных {word}: {len(active_reminders)}.")
+
+    if not pending and not active_reminders:
+        lines.append("Активных задач и напоминаний нет. Готовы построить новый маршрут?")
+    else:
+        lines.append("Продолжим?")
+
+    return "\n".join(lines)
+
+
 # ---------- Вебхук MAX ----------
 
 @app.post("/webhook")
@@ -687,15 +738,10 @@ async def webhook(
             add_history(str(user_id), "bot_started")
 
             try:
+                reply = build_start_reply(str(user_id))
                 await send_message(
                     str(user_id),
-                    (
-                        "Привет! 👋\n\n"
-                        "Я помогу разобраться, какая поддержка "
-                        "доступна именно в вашей ситуации, "
-                        "что подготовить и какой следующий шаг.\n\n"
-                        "Начнём с короткой персональной проверки."
-                    ),
+                    reply,
                     include_app_button=True,
                 )
             except Exception as error:
@@ -714,13 +760,11 @@ async def webhook(
 
         if user_id:
             try:
-                if text in {"/start", "начать", "помощь", "nirvana"}:
+                if text in {"/start", "начать", "помощь", "nirvana", "start"}:
+                    reply = build_start_reply(str(user_id))
                     await send_message(
                         str(user_id),
-                        (
-                            "Откройте Nirvana — "
-                            "там можно пройти персональную проверку."
-                        ),
+                        reply,
                         include_app_button=True,
                     )
                 elif text in {
