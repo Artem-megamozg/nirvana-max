@@ -974,6 +974,84 @@
       "priority": 4,
       "rules": [],
       "missing": []
+    },
+    {
+      "id": "family_pregnancy_support",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Пособие по беременности и родам",
+      "short_description": "Единовременная выплата при уходе в декретный отпуск.",
+      "amount": "Зависит от среднего заработка",
+      "conditions": [
+        "Беременность и роды",
+        "Трудоустройство или статус студентки"
+      ],
+      "how_to_apply": "Через работодателя, СФР или напрямую в учебном заведении.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "pregnant",
+          "op": "==",
+          "value": true,
+          "reason": "Вы указали беременность"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_birth_support",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Единовременное пособие при рождении ребёнка",
+      "short_description": "Разовая выплата после рождения ребёнка.",
+      "amount": "Фиксированная сумма",
+      "conditions": [
+        "Ребёнок родился",
+        "Обратиться в течение 6 месяцев"
+      ],
+      "how_to_apply": "Через СФР, Госуслуги или МФЦ.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "children_count",
+          "op": ">=",
+          "value": 1,
+          "reason": "У вас есть ребёнок"
+        }
+      ],
+      "missing": []
+    },
+    {
+      "id": "family_maternity_benefit_early",
+      "scenario": "family",
+      "kind": "support",
+      "title": "Пособие при постановке на учёт в ранние сроки беременности",
+      "short_description": "Для беременных, вставших на учёт в первые 12 недель.",
+      "amount": "Размер зависит от региона",
+      "conditions": [
+        "Беременность до 12 недель",
+        "Постановка на учёт в медорганизации"
+      ],
+      "how_to_apply": "Через медорганизацию и СФР.",
+      "source_name": "СФР",
+      "source_url": "https://sfr.gov.ru/",
+      "data_status": "model",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "pregnant",
+          "op": "==",
+          "value": true,
+          "reason": "Вы указали беременность"
+        }
+      ],
+      "missing": []
     }
   ]
 }

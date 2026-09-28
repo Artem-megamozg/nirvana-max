@@ -11,6 +11,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+      - ./web:/app/web
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 30s

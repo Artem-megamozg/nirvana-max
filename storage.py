@@ -91,6 +91,26 @@ def init_db():
         """
     )
 
+    # --- Миграции: добавляем недостающие колонки на существующей БД ---
+    existing = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(profiles)").fetchall()
+    }
+    migrations = [
+        ("children", "TEXT DEFAULT '[]'"),
+        ("scenario_specific", "TEXT DEFAULT '{}'"),
+        ("full_name", "TEXT"),
+        ("phone", "TEXT"),
+        ("about", "TEXT"),
+    ]
+    for col, typ in migrations:
+        if col not in existing:
+            try:
+                conn.execute(f"ALTER TABLE profiles ADD COLUMN {col} {typ}")
+                print(f"DB MIGRATION: добавлена колонка {col}")
+            except Exception as e:
+                print(f"DB MIGRATION ERROR ({col}): {e}")
+
     conn.commit()
     conn.close()
 

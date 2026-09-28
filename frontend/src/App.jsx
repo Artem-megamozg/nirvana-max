@@ -1,8 +1,11 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
+
+import { REGIONS } from './data/regions'
 
 import {
   completeTask,
@@ -333,15 +336,7 @@ function App() {
       return
     }
 
-    if (
-      selectedScenario.id === 'family' &&
-      (profileForm.children || []).length < 1
-    ) {
-      setError(
-        'Для семейного сценария укажите хотя бы одного ребёнка.'
-      )
-      return
-    }
+
 
     try {
       setActionLoading(true)
@@ -1219,23 +1214,27 @@ function ProfileScreen({
   const family = scenario?.id === 'family'
   const medical = scenario?.id === 'medical'
 
-  // Проверяем, какие поля заполнены
+  // Определяем, что уже заполнено — один раз при рендере,
+  // но поля НЕ скрываем при вводе
   const summary = [
     { key: 'region', label: 'Регион', value: form.region },
     { key: 'age', label: 'Возраст', value: form.age },
     { key: 'employment', label: 'Занятость', value: form.employment },
     { key: 'income', label: 'Доход', value: form.income },
-    { key: 'children', label: 'Дети', value: (form.children || []).length },
   ]
+  const hasChildren = (form.children || []).length > 0
 
-  const missing = summary.filter((s) => {
-    if (s.key === 'children') {
-      return family && (form.children || []).length === 0
-    }
-    return !s.value
-  })
-
-  const isComplete = missing.length === 0
+  // ВАЖНО: замораживаем состояние при первом рендере.
+  // Иначе при вводе последнего поля экран переключится на сводку,
+  // и поле исчезнет прямо во время ввода.
+  const [wasComplete] = useState(() =>
+    Boolean(
+      form.region &&
+      form.age &&
+      form.employment &&
+      (!family || hasChildren)
+    )
+  )
 
   return (
     <section className="content">
@@ -1248,31 +1247,38 @@ function ProfileScreen({
         </div>
 
         <h1>
-          {isComplete
+          {wasComplete
             ? 'Проверим данные'
             : 'Заполним недостающее'}
         </h1>
 
         <p>
-          {isComplete
+          {wasComplete
             ? 'Вот что мы о вас знаем. Если всё верно — построим маршрут.'
-            : 'Мы уже знаем о вас многое. Осталось заполнить несколько полей.'}
+            : 'Заполните данные — часть могла быть заполнена в профиле.'}
         </p>
       </div>
 
-      {isComplete && (
+      {wasComplete && (
         <div className="profile-summary-card">
           {summary.map((row) => (
             <div key={row.key} className="summary-row">
               <span className="summary-check">✓</span>
               <span className="summary-label">{row.label}:</span>
-              <span className="summary-value">
-                {row.key === 'children'
-                  ? `${row.value} ${row.value === 1 ? 'ребёнок' : 'детей'}`
-                  : row.value}
-              </span>
+              <span className="summary-value">{row.value}</span>
             </div>
           ))}
+
+          {family && hasChildren && (
+            <div className="summary-row">
+              <span className="summary-check">✓</span>
+              <span className="summary-label">Дети:</span>
+              <span className="summary-value">
+                {(form.children || []).length}{' '}
+                {(form.children || []).length === 1 ? 'ребёнок' : 'детей'}
+              </span>
+            </div>
+          )}
 
           <button
             className="link-button full"
@@ -1283,63 +1289,51 @@ function ProfileScreen({
         </div>
       )}
 
-      {!isComplete && (
+      {!wasComplete && (
         <div className="form-card">
-          {!form.region && (
+          <RegionAutocomplete
+            value={form.region}
+            onChange={(value) => update('region', value)}
+          />
+
+          <div className="field-grid">
             <Field
-              label="Регион"
-              value={form.region}
-              placeholder="Например, Москва"
-              onChange={(value) => update('region', value)}
-            />
-          )}
-
-          {(!form.age || !form.employment) && (
-            <div className="field-grid">
-              {!form.age && (
-                <Field
-                  label="Возраст"
-                  type="number"
-                  value={form.age}
-                  placeholder="30"
-                  onChange={(value) => update('age', value)}
-                />
-              )}
-
-              {!form.employment && (
-                <SelectField
-                  label="Занятость"
-                  value={form.employment}
-                  options={[
-                    'работаю',
-                    'не работаю',
-                    'учусь',
-                    'работаю и учусь',
-                  ]}
-                  onChange={(value) => update('employment', value)}
-                />
-              )}
-            </div>
-          )}
-
-          {!form.income && (
-            <Field
-              label="Доход на члена семьи"
+              label="Возраст"
               type="number"
-              value={form.income}
-              placeholder="Например, 25000"
-              onChange={(value) => update('income', value)}
+              value={form.age}
+              placeholder="30"
+              onChange={(value) => update('age', value)}
             />
-          )}
 
-          {family && (form.children || []).length === 0 && (
+            <SelectField
+              label="Занятость"
+              value={form.employment}
+              options={[
+                'работаю',
+                'не работаю',
+                'учусь',
+                'работаю и учусь',
+              ]}
+              onChange={(value) => update('employment', value)}
+            />
+          </div>
+
+          <Field
+            label="Доход на члена семьи"
+            type="number"
+            value={form.income}
+            placeholder="Например, 25000"
+            onChange={(value) => update('income', value)}
+          />
+
+          {family && (
             <ChildrenEditor
               children={form.children || []}
               onChange={(next) => update('children', next)}
             />
           )}
 
-          {family && !form.marital_status && (
+          {family && (
             <SelectField
               label="Семейное положение"
               value={form.marital_status}
@@ -1365,7 +1359,7 @@ function ProfileScreen({
       >
         {loading
           ? 'Строим маршрут...'
-          : isComplete
+          : wasComplete
             ? 'Всё верно, строить маршрут'
             : 'Продолжить'}
         {!loading && <span>→</span>}
@@ -1485,6 +1479,14 @@ function ResultsScreen({
             профиль — от этого зависит
             точность маршрута.
           </p>
+
+          {scenario?.id === 'family' && (
+            <p className="empty-hint">
+              В сценарии «Семья и дети» большинство мер требуют
+              наличия детей. Если у вас их нет — посмотрите
+              другие сценарии.
+            </p>
+          )}
 
           <div className="empty-actions">
             <button
@@ -2476,10 +2478,8 @@ function MyProfileScreen({
           onChange={(v) => update('phone', v)}
         />
 
-        <Field
-          label="Регион"
+        <RegionAutocomplete
           value={form.region}
-          placeholder="Например, Москва"
           onChange={(v) => update('region', v)}
         />
 
@@ -2674,6 +2674,105 @@ function Toast({ message, type = 'success', onClose }) {
         {type === 'success' ? '✓' : type === 'error' ? '!' : 'i'}
       </span>
       <span className="toast-text">{message}</span>
+    </div>
+  )
+}
+
+
+
+function RegionAutocomplete({ value, onChange, placeholder = 'Например, Москва' }) {
+  const [query, setQuery] = useState(value || '')
+  const [open, setOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+  const wrapperRef = useRef(null)
+
+  useEffect(() => {
+    setQuery(value || '')
+  }, [value])
+
+  // Клик вне — закрыть
+  useEffect(() => {
+    function handleClick(e) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target)
+      ) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filtered = query.trim()
+    ? REGIONS.filter((r) =>
+        r.toLowerCase().includes(query.trim().toLowerCase())
+      ).slice(0, 8)
+    : REGIONS.slice(0, 8)
+
+  function pick(region) {
+    onChange(region)
+    setQuery(region)
+    setOpen(false)
+  }
+
+  function handleKey(e) {
+    if (!open) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlight((h) => Math.min(h + 1, filtered.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (filtered[highlight]) pick(filtered[highlight])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="region-autocomplete" ref={wrapperRef}>
+      <label className="field">
+        <span>Регион</span>
+        <input
+          type="text"
+          value={query}
+          placeholder={placeholder}
+          autoComplete="off"
+          onChange={(e) => {
+            setQuery(e.target.value)
+            onChange(e.target.value)
+            setOpen(true)
+            setHighlight(0)
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKey}
+        />
+      </label>
+
+      {open && filtered.length > 0 && (
+        <div className="region-dropdown">
+          {filtered.map((region, i) => (
+            <button
+              key={region}
+              type="button"
+              className={
+                'region-option' +
+                (i === highlight ? ' highlighted' : '')
+              }
+              onMouseDown={(e) => {
+                e.preventDefault()
+                pick(region)
+              }}
+              onMouseEnter={() => setHighlight(i)}
+            >
+              {region}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
