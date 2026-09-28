@@ -28,3 +28,20 @@ frontend/dist/
 .DS_Store
 data/*.backup-*
 data/*.bak-*
+
+# SQLite DB
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/*.backup-*
+data/*.bak-*
+
+# Node
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
