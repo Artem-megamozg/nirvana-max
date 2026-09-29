@@ -5,6 +5,7 @@
 поэтому verify_ssl_certs=False безопасен — соединение
 идёт к Sber напрямую.
 """
+import asyncio
 import os
 from pathlib import Path
 
@@ -51,6 +52,36 @@ async def rewrite_text(prompt: str, system_prompt: str = "") -> str | None:
         response = client.chat(chat)
         return response.choices[0].message.content
 
+    except GigaChatException as e:
+        print(f"GIGACHAT ERROR: {e}")
+        return None
+    except Exception as e:
+        print(f"GIGACHAT UNEXPECTED: {e}")
+        return None
+
+
+async def chat_text(history: list[dict[str, str]], system_prompt: str) -> str | None:
+    """Многоходовой диалог: history = [{"role": "user"|"assistant", "content": ...}]."""
+    if not is_enabled():
+        return None
+
+    def _call() -> str | None:
+        messages = [Messages(role=MessagesRole.SYSTEM, content=system_prompt)]
+        for turn in history:
+            role = MessagesRole.USER if turn["role"] == "user" else MessagesRole.ASSISTANT
+            messages.append(Messages(role=role, content=turn["content"]))
+
+        client = GigaChat(
+            credentials=GIGACHAT_AUTH_KEY,
+            verify_ssl_certs=False,
+            model="GigaChat-2-Pro",
+            timeout=30,
+        )
+        response = client.chat(Chat(messages=messages, temperature=0.3))
+        return response.choices[0].message.content
+
+    try:
+        return await asyncio.to_thread(_call)
     except GigaChatException as e:
         print(f"GIGACHAT ERROR: {e}")
         return None

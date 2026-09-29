@@ -215,3 +215,10 @@ export async function sendFeedback(measureId, vote, userId) {
     }
   )
 }
+
+export async function sendChat(messages) {
+  return request('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ messages }),
+  })
+}

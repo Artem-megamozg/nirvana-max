@@ -6,6 +6,8 @@ import {
 } from 'react'
 
 import { REGIONS } from './data/regions'
+import { Icon } from './components/Icon'
+import { ChatWidget } from './components/ChatWidget'
 
 import {
   completeTask,
@@ -137,6 +139,7 @@ function App() {
     useState([])
 
   const [scenarios, setScenarios] = useState([])
+  const [consentGiven, setConsentGiven] = useState(false)
   const [profile, setProfile] = useState(null)
   const [profileForm, setProfileForm] =
     useState(emptyProfile)
@@ -299,6 +302,27 @@ function App() {
       setHistory(
         historyData?.items || []
       )
+
+      // Проверяем согласие на сервере (всегда, localStorage не надёжен)
+      try {
+        const cRes = await fetch(
+          `/api/profile/${encodeURIComponent(userId)}/consent`
+        )
+        const cData = await cRes.json()
+        if (cData?.consent) {
+          setConsentGiven(true)
+          localStorage.setItem('nirvana_consent_v1', 'true')
+        } else {
+          setConsentGiven(false)
+          localStorage.removeItem('nirvana_consent_v1')
+        }
+      } catch {
+        // Если сервер недоступен — пробуем localStorage
+        const localConsent = localStorage.getItem('nirvana_consent_v1')
+        if (localConsent === 'true') {
+          setConsentGiven(true)
+        }
+      }
     } catch (err) {
       setError(
         err.message ||
@@ -306,6 +330,53 @@ function App() {
       )
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function removeProfile() {
+    const confirmed = window.confirm(
+      'Удалить профиль и все данные?\n\n' +
+      'Это действие нельзя отменить: профиль, задачи, ' +
+      'напоминания и история будут удалены.'
+    )
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(
+        `/api/profile/${encodeURIComponent(userId)}`,
+        { method: 'DELETE' }
+      )
+      if (!res.ok) throw new Error('HTTP ' + res.status)
+
+      localStorage.removeItem('nirvana_consent_v1')
+      setConsentGiven(false)
+      setProfile(null)
+      setTasks([])
+      setReminders([])
+      setHistory([])
+      setRecommendations([])
+      setSelectedMeasure(null)
+      setScreen(SCREENS.HOME)
+    } catch (err) {
+      setError('Не удалось удалить профиль')
+    }
+  }
+
+  async function giveConsent() {
+    try {
+      await fetch(
+        `/api/profile/${encodeURIComponent(userId)}/consent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, consent: true }),
+        }
+      )
+      localStorage.setItem('nirvana_consent_v1', 'true')
+      setConsentGiven(true)
+      haptic('success')
+    } catch (err) {
+      setError('Не удалось сохранить согласие')
     }
   }
 
@@ -767,6 +838,14 @@ function App() {
     )
   }
 
+  if (!consentGiven) {
+    return (
+      <AppShell>
+        <ConsentScreen onAccept={giveConsent} />
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <div className="app">
@@ -822,6 +901,7 @@ function App() {
               setProfile(updatedProfile)
             }}
             onToast={showToast}
+            onDelete={removeProfile}
           />
         )}
 
@@ -937,6 +1017,8 @@ function App() {
           />
         )}
 
+        <ChatWidget />
+
         <BottomNav
           screen={screen}
           onHome={goHome}
@@ -978,41 +1060,45 @@ function Header({
   maxUser,
   onHome,
 }) {
-  const showLogo =
-    screen === SCREENS.HOME
-
   return (
     <header className="topbar">
       <button
-        className="brand-button"
+        className="brand"
         onClick={onHome}
+        aria-label="Nirvana — на главную"
       >
-        <div className="brand-mark">
-          N
-        </div>
-
-        <div>
-          <div className="brand-title">
-            Nirvana
-          </div>
-
-          <div className="brand-subtitle">
-            ваш маршрут помощи
-          </div>
-        </div>
-      </button>
-
-      <div className="user-pill">
-        <span className="user-dot" />
-
-        <span>
-          {maxUser?.first_name ||
-            'Пользователь'}
+        <BrandMark />
+        <span className="brand-type">
+          <span className="brand-name">Nirvana</span>
+          <span className="brand-tagline">маршрут помощи</span>
         </span>
-      </div>
+      </button>
     </header>
   )
 }
+
+function BrandMark() {
+  return (
+    <svg
+      className="brand-mark"
+      width="30"
+      height="30"
+      viewBox="0 0 30 30"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 22 C 9 22, 9 8, 15 8 C 21 8, 21 22, 27 22"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+      <circle cx="3" cy="22" r="2.4" fill="currentColor" />
+      <circle cx="27" cy="22" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  )
+}
+
 
 function ErrorBanner({
   message,
@@ -1081,8 +1167,6 @@ function HomeScreen({
   return (
     <section className="content">
       <div className="hero">
-        <div className="hero-glow" />
-
         <div className="eyebrow">
           ПЕРСОНАЛЬНЫЙ ПОМОЩНИК
         </div>
@@ -1106,7 +1190,7 @@ function HomeScreen({
           onClick={onStart}
         >
           Начать проверку
-          <span>→</span>
+          <span><Icon name="chevronRight" size={16} /></span>
         </button>
       </div>
 
@@ -1141,7 +1225,7 @@ function HomeScreen({
 
           <div className="card-footer">
             Дополнить профиль
-            <span>→</span>
+            <span><Icon name="chevronRight" size={16} /></span>
           </div>
         </button>
       ) : null}
@@ -1162,7 +1246,7 @@ function HomeScreen({
             className="text-button"
             onClick={onStart}
           >
-            Все →
+            Все <Icon name="chevronRight" size={14} />
           </button>
         </div>
 
@@ -1175,7 +1259,7 @@ function HomeScreen({
                 onClick={() => onSelectScenario(scenario)}
               >
                 <span className="scenario-icon">
-                  {scenario.icon}
+                  <Icon name={scenario.icon} size={22} />
                 </span>
 
                 <span className="scenario-title">
@@ -1183,7 +1267,7 @@ function HomeScreen({
                 </span>
 
                 <span className="scenario-arrow">
-                  →
+                  <Icon name="chevronRight" size={18} />
                 </span>
               </button>
             )
@@ -1195,7 +1279,7 @@ function HomeScreen({
         <div className="home-status">
           {pendingTasks.length > 0 && (
             <span className="status-chip">
-              ✓ {pendingTasks.length}{' '}
+              <Icon name="check" size={14} /> {pendingTasks.length}{' '}
               {pendingTasks.length === 1
                 ? 'задача'
                 : 'задач'}{' '}
@@ -1247,7 +1331,7 @@ function ScenarioScreen({
               }
             >
               <span className="big-scenario-icon">
-                {scenario.icon}
+                <Icon name={scenario.icon} size={26} />
               </span>
 
               <span className="big-scenario-copy">
@@ -1261,7 +1345,7 @@ function ScenarioScreen({
               </span>
 
               <span className="big-scenario-arrow">
-                →
+                <Icon name="chevronRight" size={20} />
               </span>
             </button>
           )
@@ -1324,7 +1408,7 @@ function ProfileScreen({
         <span className="eyebrow">ШАГ 2</span>
 
         <div className="selected-scenario">
-          <span>{scenario?.icon}</span>
+          <Icon name={scenario?.icon} size={16} />
           {scenario?.title}
         </div>
 
@@ -1345,7 +1429,7 @@ function ProfileScreen({
         <div className="profile-summary-card">
           {summary.map((row) => (
             <div key={row.key} className="summary-row">
-              <span className="summary-check">✓</span>
+              <span className="summary-check"><Icon name="check" size={14} /></span>
               <span className="summary-label">{row.label}:</span>
               <span className="summary-value">{row.value}</span>
             </div>
@@ -1353,7 +1437,7 @@ function ProfileScreen({
 
           {family && hasChildren && (
             <div className="summary-row">
-              <span className="summary-check">✓</span>
+              <span className="summary-check"><Icon name="check" size={14} /></span>
               <span className="summary-label">Дети:</span>
               <span className="summary-value">
                 {(form.children || []).length}{' '}
@@ -1366,7 +1450,7 @@ function ProfileScreen({
             className="link-button full"
             onClick={onOpenFullProfile}
           >
-            Что-то изменить →
+            Что-то изменить <Icon name="chevronRight" size={14} />
           </button>
         </div>
       )}
@@ -1436,7 +1520,7 @@ function ProfileScreen({
 
           {medical && (
             <div className="medical-disclaimer">
-              <div className="medical-disclaimer-icon">⚠️</div>
+              <div className="medical-disclaimer-icon"><Icon name="warning" size={20} /></div>
               <div className="medical-disclaimer-body">
                 <strong>Nirvana не заменяет врача</strong>
                 <p>
@@ -1462,7 +1546,7 @@ function ProfileScreen({
           : wasComplete
             ? 'Всё верно, строить маршрут'
             : 'Продолжить'}
-        {!loading && <span>→</span>}
+        {!loading && <span><Icon name="chevronRight" size={16} /></span>}
       </button>
     </section>
   )
@@ -1481,7 +1565,7 @@ function ResultsScreen({
     <section className="content">
       {scenario?.id === 'medical' && (
         <div className="medical-disclaimer compact">
-          <div className="medical-disclaimer-icon">⚠️</div>
+          <div className="medical-disclaimer-icon"><Icon name="warning" size={20} /></div>
           <div className="medical-disclaimer-body">
             <strong>Только административный маршрут</strong>
             <p>
@@ -1494,7 +1578,7 @@ function ResultsScreen({
 
       <div className="result-hero">
         <div className="success-icon">
-          ✓
+          <Icon name="check" size={28} />
         </div>
 
         <div>
@@ -1538,7 +1622,7 @@ function ResultsScreen({
                 }
               >
                 <div className="measure-icon">
-                  {measure.icon || '📌'}
+                  <Icon name={measure.icon} size={22} />
                 </div>
 
                 <div className="measure-copy">
@@ -1564,12 +1648,12 @@ function ResultsScreen({
                   </span>
 
                   <small>
-                    Почему подходит →
+                    Почему подходит <Icon name="chevronRight" size={12} />
                   </small>
                 </div>
 
                 <div className="measure-arrow">
-                  →
+                  <Icon name="chevronRight" size={18} />
                 </div>
               </button>
             )
@@ -1641,7 +1725,7 @@ function ResultsScreen({
         </div>
 
         <span>
-          →
+          <Icon name="chevronRight" size={16} />
         </span>
       </button>
     </section>
@@ -1703,7 +1787,7 @@ function MeasureScreen({
         </div>
 
         <div className="detail-icon">
-          {measure.icon || '📌'}
+          <Icon name={measure.icon} size={30} />
         </div>
 
         <h1>
@@ -1741,7 +1825,7 @@ function MeasureScreen({
                   className="bullet-row success"
                   style={{ color: '#1a1a1a' }}
                 >
-                  <span style={{ color: '#22c55e' }}>✓</span>
+                  <span className="reason-check"><Icon name="check" size={14} /></span>
                   {reason}
                 </div>
               )
@@ -1797,9 +1881,7 @@ function MeasureScreen({
                 }
               >
                 <span className="check-circle">
-                  {item.completed
-                    ? '✓'
-                    : ''}
+                  {item.completed ? <Icon name="check" size={14} /> : null}
                 </span>
 
                 <span>
@@ -1824,7 +1906,7 @@ function MeasureScreen({
 
           {measure.authority && (
             <div className="authority-card">
-              <div className="authority-icon">📍</div>
+              <div className="authority-icon"><Icon name="pin" size={20} /></div>
               <div className="authority-body">
                 <strong>Куда подать</strong>
                 <span>{measure.authority}</span>
@@ -1868,7 +1950,7 @@ function MeasureScreen({
                 key={item}
                 className="warning-row"
               >
-                ⚠ {item}
+                <Icon name="warning" size={15} /> {item}
               </div>
             )
           )}
@@ -1906,14 +1988,24 @@ function MeasureScreen({
       </div>
 
       <div className="action-stack">
-        <button
-          className="primary-button full"
-          onClick={onTask}
-          disabled={loading}
-        >
-          Добавить в мой маршрут
-          <span>→</span>
-        </button>
+        {measure.in_route ? (
+          <div className="in-route-badge">
+            <span className="in-route-icon"><Icon name="check" size={16} /></span>
+            <div className="in-route-text">
+              <strong>Уже в маршруте</strong>
+              <span>Задача создана — откройте раздел «Маршрут»</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="primary-button full"
+            onClick={onTask}
+            disabled={loading}
+          >
+            Добавить в мой маршрут
+            <span><Icon name="chevronRight" size={16} /></span>
+          </button>
+        )}
 
         <div className="reminder-options">
           <div className="muted-label">НАПОМНИТЬ</div>
@@ -1948,7 +2040,7 @@ function MeasureScreen({
             onClick={onOfficial}
           >
             Открыть официальный источник
-            ↗
+            <Icon name="external" size={14} />
           </button>
         )}
       </div>
@@ -1956,7 +2048,7 @@ function MeasureScreen({
       <div className="feedback-block">
         {feedbackSent ? (
           <div className="feedback-thanks">
-            <span className="feedback-thanks-icon">✓</span>
+            <span className="feedback-thanks-icon"><Icon name="checkCircle" size={18} /></span>
             <span>Спасибо за отзыв!</span>
           </div>
         ) : (
@@ -1969,13 +2061,13 @@ function MeasureScreen({
                 className="feedback-button up"
                 onClick={() => handleFeedback(1)}
               >
-                👍 Подходит
+                <Icon name="thumbsUp" size={16} /> Подходит
               </button>
               <button
                 className="feedback-button down"
                 onClick={() => handleFeedback(-1)}
               >
-                👎 Не подходит
+                <Icon name="thumbsDown" size={16} /> Не подходит
               </button>
             </div>
           </>
@@ -2001,7 +2093,8 @@ function MeasureScreen({
               className="source-link"
               onClick={() => openExternal(measure.source_url)}
             >
-              {measure.source_url.replace(/^https?:\/\//, '').split('/')[0]} ↗
+              {measure.source_url.replace(/^https?:\/\//, '').split('/')[0]}
+              <Icon name="external" size={12} />
             </button>
           </div>
         )}
@@ -2120,7 +2213,7 @@ function RouteScreen({
                       )
                     }
                   >
-                    ✓
+                    <Icon name="check" size={16} />
                   </button>
                 </div>
 
@@ -2153,7 +2246,7 @@ function RouteScreen({
                         onComplete(task.id)
                       }
                     >
-                      ✓ Завершить
+                      <Icon name="check" size={14} /> Завершить
                     </button>
 
                     <button
@@ -2188,7 +2281,7 @@ function RouteScreen({
       ) : (
         <div className="empty-card done">
           <div className="empty-icon success">
-            ✓
+            <Icon name="checkCircle" size={32} />
           </div>
 
           <h3>
@@ -2242,7 +2335,7 @@ function RouteScreen({
                 className="task-card completed"
               >
                 <div className="task-check">
-                  <span className="check-done">✓</span>
+                  <span className="check-done"><Icon name="check" size={14} /></span>
                 </div>
 
                 <div className="task-content">
@@ -2304,7 +2397,7 @@ function RouteScreen({
                   className="history-row"
                 >
                   <span>
-                    ✓
+                    <Icon name="check" size={14} />
                   </span>
 
                   <div>
@@ -2444,25 +2537,25 @@ function BottomNav({
   const items = [
     {
       id: SCREENS.HOME,
-      icon: '⌂',
+      icon: 'home',
       title: 'Главная',
       onClick: onHome,
     },
     {
       id: SCREENS.ROUTE,
-      icon: '✓',
+      icon: 'route',
       title: 'Маршрут',
       onClick: onRoute,
     },
     {
       id: SCREENS.REMINDERS,
-      icon: '◷',
+      icon: 'clock',
       title: 'Напоминания',
       onClick: onReminders,
     },
     {
       id: SCREENS.MY_PROFILE,
-      icon: '◇',
+      icon: 'user',
       title: 'Профиль',
       onClick: onProfile,
     },
@@ -2481,7 +2574,7 @@ function BottomNav({
           onClick={item.onClick}
         >
           <span>
-            {item.icon}
+            <Icon name={item.icon} size={20} />
           </span>
 
           <small>
@@ -2614,6 +2707,7 @@ function MyProfileScreen({
   onBack,
   onSaved,
   onToast,
+  onDelete,
 }) {
   const [form, setForm] = useState(() => ({
     full_name: profile?.full_name || maxUser?.first_name || '',
@@ -2835,8 +2929,21 @@ function MyProfileScreen({
         className="link-button full"
         onClick={onBack}
       >
-        ← На главную
+        <Icon name="chevronLeft" size={14} /> На главную
       </button>
+
+      <button
+        className="danger-button full"
+        onClick={onDelete}
+      >
+        Удалить профиль и все данные
+      </button>
+
+      <div className="danger-note">
+        Удаление необратимо: профиль, задачи, напоминания
+        и история будут стёрты (152-ФЗ, право на забвение).
+      </div>
+
     </section>
   )
 }
@@ -2963,7 +3070,10 @@ function Toast({ message, type = 'success', onClose }) {
   return (
     <div className={`toast toast-${type}`}>
       <span className="toast-icon">
-        {type === 'success' ? '✓' : type === 'error' ? '!' : 'i'}
+        <Icon
+          name={type === 'success' ? 'checkCircle' : type === 'error' ? 'warning' : 'info'}
+          size={16}
+        />
       </span>
       <span className="toast-text">{message}</span>
     </div>
@@ -3100,7 +3210,7 @@ function SavingsBlock({ recommendations, scenario }) {
         </div>
 
         <div className="savings-row">
-          <span className="savings-icon">📋</span>
+          <span className="savings-icon"><Icon name="documents" size={20} /></span>
           <div>
             <strong>{savedTrips} обращения в ведомства</strong>
             <span>
@@ -3110,7 +3220,7 @@ function SavingsBlock({ recommendations, scenario }) {
         </div>
 
         <div className="savings-row">
-          <span className="savings-icon">🎯</span>
+          <span className="savings-icon"><Icon name="target" size={20} /></span>
           <div>
             <strong>{count} {count === 1 ? 'мера' : 'мер'} в маршруте</strong>
             <span>
@@ -3157,6 +3267,91 @@ function LoadingSkeleton() {
 
       <div className="skeleton-card">
         <Skeleton variant="line" count={4} />
+      </div>
+    </section>
+  )
+}
+
+
+
+function ConsentScreen({ onAccept }) {
+  const [checked, setChecked] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleAccept() {
+    if (!checked) return
+    setLoading(true)
+    try {
+      await onAccept()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="content consent-screen">
+      <div className="consent-icon"><Icon name="lock" size={26} /></div>
+
+      <h1>Добро пожаловать в Nirvana</h1>
+
+      <p className="consent-intro">
+        Прежде чем начать, нам нужно ваше согласие
+        на обработку персональных данных.
+      </p>
+
+      <div className="consent-card">
+        <div className="consent-title">
+          Что мы обрабатываем
+        </div>
+        <ul className="consent-list">
+          <li>Данные профиля: регион, возраст, состав семьи</li>
+          <li>Задачи в маршруте и напоминания</li>
+          <li>Историю действий в приложении</li>
+        </ul>
+
+        <div className="consent-title">
+          Как мы храним данные
+        </div>
+        <ul className="consent-list">
+          <li>Данные хранятся только на нашем сервере</li>
+          <li>Мы не передаём их третьим лицам</li>
+          <li>Вы можете удалить все данные в любой момент</li>
+        </ul>
+
+        <div className="consent-title">
+          Ваши права (152-ФЗ)
+        </div>
+        <ul className="consent-list">
+          <li>Получить доступ к своим данным</li>
+          <li>Исправить неточные данные</li>
+          <li>Удалить профиль и все данные</li>
+        </ul>
+      </div>
+
+      <label className="consent-checkbox">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => setChecked(e.target.checked)}
+        />
+        <span>
+          Я согласен(на) на обработку персональных
+          данных в соответствии с 152-ФЗ
+        </span>
+      </label>
+
+      <button
+        className="primary-button full"
+        onClick={handleAccept}
+        disabled={!checked || loading}
+      >
+        {loading ? 'Сохраняем...' : 'Продолжить'}
+      </button>
+
+      <div className="consent-note">
+        Мы не используем ваши данные для рекламы.
+        Вы можете отозвать согласие в любой момент,
+        удалив профиль в разделе «Профиль».
       </div>
     </section>
   )
