@@ -355,7 +355,6 @@ function App() {
       setRecommendations([])
       setSelectedMeasure(null)
       setScreen(SCREENS.HOME)
-      showToast('Профиль удалён')
     } catch (err) {
       setError('Не удалось удалить профиль')
     }
