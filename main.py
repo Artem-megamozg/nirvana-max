@@ -443,31 +443,23 @@ async def measure(measure_id: str, user_id: str | None = None):
     else:
         state = {}
 
+    # Берём документы из каталога меры
+    docs = item.get("documents") or []
+    if not docs:
+        docs = [
+            "Паспорт заявителя",
+            "Документы, подтверждающие право на меру",
+        ]
+
     checklist = []
-
-    default_items = [
-        {
-            "id": f"{measure_id}_passport",
-            "title": "Паспорт / основной документ",
-            "required": True,
-        },
-        {
-            "id": f"{measure_id}_children",
-            "title": "Документы на детей",
-            "required": item.get("scenario") == "family",
-        },
-        {
-            "id": f"{measure_id}_income",
-            "title": "Подтверждение дохода при необходимости",
-            "required": "доход" in " ".join(item.get("conditions", [])).lower(),
-        },
-    ]
-
-    for checklist_item in default_items:
+    for i, doc in enumerate(docs):
+        item_id = f"{measure_id}_doc_{i}"
         checklist.append(
             {
-                **checklist_item,
-                "completed": state.get(checklist_item["id"], False),
+                "id": item_id,
+                "title": doc,
+                "required": True,
+                "completed": state.get(item_id, False),
             }
         )
 
@@ -485,26 +477,24 @@ async def checklist(measure_id: str, user_id: str = Query(...)):
 
     state = get_checklist_state(user_id, measure_id)
 
-    items = [
-        {
-            "id": f"{measure_id}_passport",
-            "title": "Паспорт / основной документ",
-            "required": True,
-        },
-        {
-            "id": f"{measure_id}_children",
-            "title": "Документы на детей",
-            "required": item.get("scenario") == "family",
-        },
-        {
-            "id": f"{measure_id}_income",
-            "title": "Подтверждение дохода при необходимости",
-            "required": "доход" in " ".join(item.get("conditions", [])).lower(),
-        },
-    ]
+    docs = item.get("documents") or []
+    if not docs:
+        docs = [
+            "Паспорт заявителя",
+            "Документы, подтверждающие право на меру",
+        ]
 
-    for item_data in items:
-        item_data["completed"] = state.get(item_data["id"], False)
+    items = []
+    for i, doc in enumerate(docs):
+        item_id = f"{measure_id}_doc_{i}"
+        items.append(
+            {
+                "id": item_id,
+                "title": doc,
+                "required": True,
+                "completed": state.get(item_id, False),
+            }
+        )
 
     return {
         "measure_id": measure_id,
