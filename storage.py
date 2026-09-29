@@ -169,6 +169,7 @@ def upsert_profile(user_id: str, data: dict[str, Any]):
         "full_name": keep("full_name", data.get("full_name")),
         "phone": keep("phone", data.get("phone")),
         "about": keep("about", data.get("about")),
+        "gender": keep("gender", data.get("gender")),
         "updated_at": now_iso(),
     }
 

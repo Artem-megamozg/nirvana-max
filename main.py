@@ -97,6 +97,7 @@ class ProfileRequest(BaseModel):
     full_name: str | None = None
     phone: str | None = None
     about: str | None = None
+    gender: str | None = None
 
 
 class RecommendationRequest(BaseModel):
