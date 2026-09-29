@@ -1056,41 +1056,60 @@ function Header({
   maxUser,
   onHome,
 }) {
-  const showLogo =
-    screen === SCREENS.HOME
+  const firstName = maxUser?.first_name || ''
+  const lastName = maxUser?.last_name || ''
+  const initial = (firstName[0] || 'N').toUpperCase()
+  const displayName = firstName
+    ? `${firstName}${lastName ? ' ' + lastName : ''}`
+    : 'Гость'
 
   return (
     <header className="topbar">
       <button
-        className="brand-button"
+        className="brand"
         onClick={onHome}
+        aria-label="Nirvana — на главную"
       >
-        <div className="brand-mark">
-          N
-        </div>
-
-        <div>
-          <div className="brand-title">
-            Nirvana
-          </div>
-
-          <div className="brand-subtitle">
-            ваш маршрут помощи
-          </div>
-        </div>
+        <BrandMark />
+        <span className="brand-type">
+          <span className="brand-name">Nirvana</span>
+          <span className="brand-tagline">маршрут помощи</span>
+        </span>
       </button>
 
-      <div className="user-pill">
-        <span className="user-dot" />
-
-        <span>
-          {maxUser?.first_name ||
-            'Пользователь'}
+      <div className="who">
+        <span className="who-initial" aria-hidden="true">
+          {initial}
         </span>
+        <span className="who-rule" aria-hidden="true" />
+        <span className="who-name">{displayName}</span>
       </div>
     </header>
   )
 }
+
+function BrandMark() {
+  return (
+    <svg
+      className="brand-mark"
+      width="30"
+      height="30"
+      viewBox="0 0 30 30"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 22 C 9 22, 9 8, 15 8 C 21 8, 21 22, 27 22"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+      <circle cx="3" cy="22" r="2.4" fill="currentColor" />
+      <circle cx="27" cy="22" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  )
+}
+
 
 function ErrorBanner({
   message,
