@@ -141,9 +141,14 @@ async def send_message(
     text: str,
     include_app_button: bool = False,
     app_url: str | None = None,
+    buttons: list | None = None,
 ):
     """
     Отправляет сообщение пользователю в MAX.
+
+    Параметры:
+    - include_app_button=True: добавить кнопку «Открыть Nirvana» (open_app)
+    - buttons=[[{type, text, payload}], ...]: произвольные inline-кнопки
 
     Важно: кнопка open_app НЕ принимает поле webApp — URL мини-приложения
     привязывается к боту в кабинете MAX for Developers, а не в кнопке.
@@ -154,21 +159,28 @@ async def send_message(
 
     payload: dict = {"text": text}
 
+    final_buttons = []
+
+    if buttons:
+        # Кнопки, переданные явно (callback, link и т.п.)
+        final_buttons = buttons
+
     if include_app_button:
+        final_buttons = final_buttons + [
+            [
+                {
+                    "type": "open_app",
+                    "text": "Открыть Nirvana",
+                    "web_app": MAX_BOT_USERNAME,
+                }
+            ]
+        ]
+
+    if final_buttons:
         payload["attachments"] = [
             {
                 "type": "inline_keyboard",
-                "payload": {
-                    "buttons": [
-                        [
-                            {
-                                "type": "open_app",
-                                "text": "Открыть Nirvana",
-                                "web_app": MAX_BOT_USERNAME,
-                            }
-                        ]
-                    ]
-                },
+                "payload": {"buttons": final_buttons},
             }
         ]
 
@@ -244,6 +256,7 @@ async def reminder_loop():
         await asyncio.sleep(30)
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     global reminder_worker_task
 
@@ -252,15 +265,23 @@ async def lifespan(app: FastAPI):
 
     reminder_worker_task = asyncio.create_task(reminder_loop())
 
+    # Регистрируем команды в меню MAX
+    asyncio.create_task(register_bot_commands())
+
+    # Запускаем еженедельный дайджест (временно отключено)
+    # digest_task = asyncio.create_task(weekly_digest_loop())
+
     yield
 
     if reminder_worker_task:
         reminder_worker_task.cancel()
-
         try:
             await reminder_worker_task
         except asyncio.CancelledError:
             pass
+
+    # digest_task отключён
+    pass
 
 
 app = FastAPI(
@@ -277,6 +298,14 @@ app.mount(
 
 
 # ---------- Сервисные роуты ----------
+
+@app.post("/api/_debug")
+async def debug_endpoint(data: dict):
+    print("=== MINI-APP DEBUG ===")
+    print(data)
+    print("=======================")
+    return {"ok": True}
+
 
 @app.get("/health")
 async def health():
@@ -662,6 +691,99 @@ async def explain(data: ExplainRequest):
     return {"text": explanation, "source": "rules_engine"}
 
 
+# ---------- Ответы на команды ----------
+
+def build_help_reply() -> str:
+    return (
+        "🤖 Что умеет Nirvana\n\n"
+        "Я помогаю разобраться, какие меры поддержки вам положены, "
+        "и не потерять следующий шаг.\n\n"
+        "В мини-приложении:\n"
+        "• профиль с вашими данными\n"
+        "• подбор мер под вашу ситуацию\n"
+        "• чек-лист документов по каждой мере\n"
+        "• маршрут с задачами и напоминаниями\n\n"
+        "Команды в боте:\n"
+        "/start — начать работу\n"
+        "/help — эта справка\n"
+        "/scenario — быстрый выбор ситуации\n"
+        "/status — мои задачи и напоминания\n\n"
+        "Откройте приложение, чтобы продолжить →"
+    )
+
+
+def build_status_reply(user_id: str) -> str:
+    profile = get_profile(user_id)
+    if not profile:
+        return (
+            "Пока не вижу ваш профиль.\n\n"
+            "Откройте приложение и заполните данные — "
+            "тогда я смогу показать ваш маршрут."
+        )
+
+    tasks = get_tasks(user_id) or []
+    pending = [t for t in tasks if t.get("status") != "completed"]
+
+    reminders = get_reminders(user_id) or []
+    active_reminders = [r for r in reminders if r.get("active")]
+
+    lines = ["📊 Ваш статус", ""]
+
+    if pending:
+        lines.append(f"📋 Активных задач: {len(pending)}")
+        for t in pending[:3]:
+            lines.append(f"   • {t.get('title', '—')}")
+        if len(pending) > 3:
+            lines.append(f"   … и ещё {len(pending) - 3}")
+    else:
+        lines.append("📋 Активных задач нет")
+
+    lines.append("")
+
+    if active_reminders:
+        lines.append(f"⏰ Активных напоминаний: {len(active_reminders)}")
+        next_reminder = active_reminders[0]
+        remind_at = next_reminder.get("remind_at", "")
+        lines.append(f"   ближайшее: {remind_at}")
+    else:
+        lines.append("⏰ Активных напоминаний нет")
+
+    lines.append("")
+    lines.append("Откройте приложение для подробностей →")
+
+    return "\n".join(lines)
+
+
+# ---------- Регистрация команд в MAX ----------
+
+async def register_bot_commands():
+    """Регистрирует команды бота в меню MAX (один раз при старте)."""
+    if not MAX_TOKEN:
+        return
+    commands = [
+        {"name": "start", "description": "Начать работу с Nirvana"},
+        {"name": "help", "description": "Что умеет бот и приложение"},
+        {"name": "scenario", "description": "Выбрать жизненную ситуацию"},
+        {"name": "status", "description": "Мои задачи и напоминания"},
+    ]
+    try:
+        async with httpx.AsyncClient(
+            timeout=15,
+            verify=CA_BUNDLE if CA_BUNDLE else True,
+        ) as client:
+            r = await client.patch(
+                f"{MAX_API}/me/commands",
+                headers={
+                    "Authorization": MAX_TOKEN,
+                    "Content-Type": "application/json",
+                },
+                json={"commands": commands},
+            )
+            print("REGISTER COMMANDS:", r.status_code, r.text[:200])
+    except Exception as e:
+        print("REGISTER COMMANDS ERROR:", repr(e))
+
+
 # ---------- Проактивные ответы ----------
 
 def build_start_reply(user_id: str) -> str:
@@ -760,12 +882,49 @@ async def webhook(
 
         if user_id:
             try:
-                if text in {"/start", "начать", "помощь", "nirvana", "start"}:
+                if text in {"/start", "начать", "nirvana", "start"}:
                     reply = build_start_reply(str(user_id))
                     await send_message(
                         str(user_id),
                         reply,
                         include_app_button=True,
+                    )
+                elif text in {"/help", "help", "помощь"}:
+                    reply = build_help_reply()
+                    await send_message(
+                        str(user_id),
+                        reply,
+                        include_app_button=True,
+                    )
+                elif text in {"/status", "status", "статус", "мой статус"}:
+                    reply = build_status_reply(str(user_id))
+                    await send_message(
+                        str(user_id),
+                        reply,
+                        include_app_button=True,
+                    )
+                elif text in {"/scenario", "scenario", "сценарий"}:
+                    await send_message(
+                        str(user_id),
+                        (
+                            "Какая у вас ситуация?\n\n"
+                            "Выберите — подскажу, какой сценарий открыть:"
+                        ),
+                        include_app_button=False,
+                        buttons=[
+                            [
+                                {"type": "callback", "text": "👨‍👩‍👧 Семья и дети", "payload": "scenario_family"},
+                            ],
+                            [
+                                {"type": "callback", "text": "🏠 Переезд", "payload": "scenario_relocation"},
+                            ],
+                            [
+                                {"type": "callback", "text": "⚕️ Медицинский маршрут", "payload": "scenario_medical"},
+                            ],
+                            [
+                                {"type": "callback", "text": "Открыть приложение", "payload": "open_app"},
+                            ],
+                        ],
                     )
                 elif text in {
                     "профиль",
@@ -794,18 +953,75 @@ async def webhook(
                 print("SEND ERROR (message_created):", repr(error))
 
     elif update_type == "message_callback":
-        # На всякий случай — обработаем callback-кнопки, если они появятся
         callback = update.get("callback") or {}
         user = callback.get("user") or {}
         user_id = user.get("user_id")
+        payload = callback.get("payload") or ""
 
         if user_id:
             try:
-                await send_message(
-                    str(user_id),
-                    "Откройте Nirvana, чтобы продолжить.",
-                    include_app_button=True,
-                )
+                if payload == "scenario_family":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "👨‍👩‍👧 Сценарий «Семья и дети»\n\n"
+                            "Открою приложение сразу на этом сценарии — "
+                            "заполните данные, и я подберу меры, которые "
+                            "положены вашей семье."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=family",
+                                }
+                            ]
+                        ],
+                    )
+                elif payload == "scenario_relocation":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "🏠 Сценарий «Переезд»\n\n"
+                            "Открою приложение сразу на этом сценарии — "
+                            "выберите его, чтобы получить маршрут после переезда."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=relocation",
+                                }
+                            ]
+                        ],
+                    )
+                elif payload == "scenario_medical":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "⚕️ Сценарий «Медицинский маршрут»\n\n"
+                            "Открою приложение сразу на этом сценарии. "
+                            "Здесь мы строим только административный маршрут: "
+                            "куда обратиться и что подготовить. Не заменяем врача."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=medical",
+                                }
+                            ]
+                        ],
+                    )
+                else:
+                    await send_message(
+                        str(user_id),
+                        "Откройте Nirvana, чтобы продолжить.",
+                        include_app_button=True,
+                    )
             except Exception as error:
                 print("SEND ERROR (message_callback):", repr(error))
 

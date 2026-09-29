@@ -20,6 +20,7 @@ import {
   getRecommendations,
   getReminders,
   getScenarios,
+  getStartParam,
   getTasks,
   getUserId,
   saveProfile,
@@ -145,6 +146,67 @@ function App() {
   useEffect(() => {
     loadInitialData()
   }, [])
+
+  useEffect(() => {
+    try {
+      const w = window.WebApp
+      const payload = {
+        hasWebApp: !!w,
+        initDataUnsafe: w?.initDataUnsafe || null,
+        start_param: w?.initDataUnsafe?.start_param || null,
+        startParam: w?.startParam || null,
+        search: window.location.search,
+        hash: window.location.hash,
+      }
+      fetch('/api/_debug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {})
+    } catch (e) {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    // ДИАГНОСТИКА: смотрим, что приходит от MAX Bridge
+    try {
+      const w = window.WebApp
+      console.log('=== WebApp диагностика ===')
+      console.log('WebApp есть:', !!w)
+      console.log('initDataUnsafe:', w?.initDataUnsafe)
+      console.log('start_param:', w?.initDataUnsafe?.start_param)
+      console.log('startParam:', w?.startParam)
+      console.log('location.search:', window.location.search)
+      console.log('location.hash:', window.location.hash)
+    } catch (e) {
+      console.log('Diagnostic error:', e)
+    }
+  }, [])
+
+  // Обработка start_param для диплинков из бота
+  useEffect(() => {
+    if (!scenarios.length) return
+
+    const param = getStartParam()
+    if (!param) return
+
+    // Приводим к id сценария: family / relocation / medical
+    const map = {
+      family: 'family',
+      relocation: 'relocation',
+      medical: 'medical',
+    }
+
+    const scenarioId = map[param]
+    if (!scenarioId) return
+
+    const scenario = scenarios.find((s) => s.id === scenarioId)
+    if (!scenario) return
+
+    // Открываем сценарий автоматически
+    selectScenario(scenario)
+  }, [scenarios])
 
   useEffect(() => {
     const backButton =

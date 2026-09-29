@@ -31,23 +31,26 @@ async function request(url, options = {}) {
 }
 
 export function getUserId() {
-  const maxUser =
-    window.WebApp?.initDataUnsafe?.user
+  // 1. Приоритет: query-параметр ?demo=... — для проверки жюри
+  const urlParams = new URLSearchParams(window.location.search)
+  const demoFromUrl = urlParams.get('demo')
+  if (demoFromUrl) {
+    localStorage.setItem('nirvana_demo_user', demoFromUrl)
+    return demoFromUrl
+  }
 
+  // 2. MAX Bridge — для реального пользователя
+  const maxUser = window.WebApp?.initDataUnsafe?.user
   if (maxUser?.id) {
     return String(maxUser.id)
   }
 
+  // 3. Fallback: localStorage с автосгенерированным demo-user
   let demoUser = localStorage.getItem('nirvana_demo_user')
 
   if (!demoUser) {
-    demoUser =
-      `demo-${Math.random().toString(36).slice(2, 10)}`
-
-    localStorage.setItem(
-      'nirvana_demo_user',
-      demoUser
-    )
+    demoUser = `demo-${Math.random().toString(36).slice(2, 10)}`
+    localStorage.setItem('nirvana_demo_user', demoUser)
   }
 
   return demoUser
@@ -55,6 +58,18 @@ export function getUserId() {
 
 export function getMaxUser() {
   return window.WebApp?.initDataUnsafe?.user || null
+}
+
+export function getStartParam() {
+  // MAX Bridge передаёт параметр через initDataUnsafe.start_param
+  const fromBridge = window.WebApp?.initDataUnsafe?.start_param
+  if (fromBridge) {
+    return String(fromBridge)
+  }
+
+  // Fallback для веб-версии (открытие напрямую по URL)
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get('startapp') || null
 }
 
 export async function getScenarios() {
