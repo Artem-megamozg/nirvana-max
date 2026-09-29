@@ -2,4 +2,4 @@ fastapi
 uvicorn[standard]
 httpx
 python-dotenv
-gigachat
+gigachat==0.2.3
