@@ -88,6 +88,14 @@ def init_db():
             about TEXT,
             updated_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS benefit_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            measure_id TEXT NOT NULL,
+            user_id TEXT,
+            vote INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+        );
         """
     )
 
@@ -560,3 +568,42 @@ def delete_reminder(reminder_id: int, user_id: str) -> bool:
     deleted = cur.rowcount > 0
     conn.close()
     return deleted
+
+
+def add_feedback(measure_id: str, vote: int, user_id: str | None = None):
+    """Сохраняет голос пользователя (vote = 1 или -1)."""
+    conn = get_conn()
+    conn.execute(
+        """
+        INSERT INTO benefit_feedback (measure_id, user_id, vote, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (measure_id, user_id, vote, now_iso()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_feedback_stats(measure_id: str) -> dict:
+    """Возвращает количество 👍 и 👎 для меры."""
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT vote, COUNT(*) as cnt
+        FROM benefit_feedback
+        WHERE measure_id = ?
+        GROUP BY vote
+        """,
+        (measure_id,),
+    ).fetchall()
+    conn.close()
+
+    up = 0
+    down = 0
+    for row in rows:
+        if row["vote"] == 1:
+            up = row["cnt"]
+        elif row["vote"] == -1:
+            down = row["cnt"]
+
+    return {"up": up, "down": down}

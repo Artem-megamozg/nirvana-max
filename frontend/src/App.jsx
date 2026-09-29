@@ -22,6 +22,7 @@ import {
   getScenarios,
   getStartParam,
   getTasks,
+  sendFeedback,
   getUserId,
   saveProfile,
   updateChecklist,
@@ -626,6 +627,20 @@ function App() {
     }
   }
 
+  async function sendMeasureFeedback(measureId, vote) {
+    try {
+      await sendFeedback(measureId, vote, userId)
+      showToast(
+        vote === 1
+          ? 'Спасибо! Рады, что подошло'
+          : 'Спасибо! Учтём ваш отзыв'
+      )
+      haptic('success')
+    } catch (err) {
+      showToast('Не удалось отправить отзыв', 'error')
+    }
+  }
+
   async function markTaskDone(
     taskId
   ) {
@@ -881,6 +896,12 @@ function App() {
             onOfficial={() =>
               openExternal(
                 selectedMeasure?.source_url
+              )
+            }
+            onFeedback={(vote) =>
+              sendMeasureFeedback(
+                selectedMeasure.id,
+                vote
               )
             }
           />
@@ -1641,6 +1662,7 @@ function MeasureScreen({
   onTask,
   onReminder,
   onOfficial,
+  onFeedback,
 }) {
   if (!measure) {
     return null
@@ -1922,6 +1944,26 @@ function MeasureScreen({
             ↗
           </button>
         )}
+      </div>
+
+      <div className="feedback-block">
+        <div className="feedback-title">
+          Подходит ли вам эта мера?
+        </div>
+        <div className="feedback-buttons">
+          <button
+            className="feedback-button up"
+            onClick={() => onFeedback?.(1)}
+          >
+            👍 Подходит
+          </button>
+          <button
+            className="feedback-button down"
+            onClick={() => onFeedback?.(-1)}
+          >
+            👎 Не подходит
+          </button>
+        </div>
       </div>
 
       <div className="source-card">

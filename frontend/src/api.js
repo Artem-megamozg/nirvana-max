@@ -202,3 +202,16 @@ export async function deleteReminder(reminderId, userId) {
   }
   return res.json()
 }
+
+export async function sendFeedback(measureId, vote, userId) {
+  return request(
+    `/api/measures/${encodeURIComponent(measureId)}/feedback`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        vote,
+        user_id: userId,
+      }),
+    }
+  )
+}

@@ -19,6 +19,7 @@ from rules import (
     reload_catalog,
 )
 from storage import (
+    add_feedback,
     add_history,
     complete_task,
     create_reminder,
@@ -138,6 +139,11 @@ class CompleteTaskRequest(BaseModel):
 class ExplainRequest(BaseModel):
     user_id: str
     measure_id: str
+
+
+class FeedbackRequest(BaseModel):
+    vote: int = Field(..., ge=-1, le=1)
+    user_id: str | None = None
 
 
 class ProfileMetaRequest(BaseModel):
@@ -714,6 +720,19 @@ async def explain(data: ExplainRequest):
             source = "gigachat"
 
     return {"text": final_text, "source": source}
+
+
+@app.post("/api/measures/{measure_id}/feedback")
+async def measure_feedback(measure_id: str, data: FeedbackRequest):
+    item = get_measure(measure_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Measure not found")
+
+    if data.vote not in (-1, 1):
+        raise HTTPException(status_code=400, detail="vote must be 1 or -1")
+
+    add_feedback(measure_id, data.vote, data.user_id)
+    return {"ok": True}
 
 
 # ---------- Ответы на команды ----------

@@ -2681,3 +2681,61 @@ button:disabled {
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
+
+/* === Обратная связь === */
+
+.feedback-block {
+  background: #f7f7fb;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.feedback-title {
+  font-size: 14px;
+  color: #6b6b7b;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.feedback-button {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e5e5ef;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #1a1a1a;
+}
+
+.feedback-button.up:hover {
+  background: #d1fae5;
+  border-color: #22c55e;
+  color: #065f46;
+}
+
+.feedback-button.down:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .feedback-block { background: #1f1f2a; }
+  .feedback-title { color: #9a9aa8; }
+  .feedback-button {
+    background: #1f1f2a;
+    border-color: #333344;
+    color: #f0f0f5;
+  }
+}
