@@ -167,26 +167,7 @@ function App() {
     loadInitialData()
   }, [])
 
-  useEffect(() => {
-    try {
-      const w = window.WebApp
-      const payload = {
-        hasWebApp: !!w,
-        initDataUnsafe: w?.initDataUnsafe || null,
-        start_param: w?.initDataUnsafe?.start_param || null,
-        startParam: w?.startParam || null,
-        search: window.location.search,
-        hash: window.location.hash,
-      }
-      fetch('/api/_debug', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => {})
-    } catch (e) {
-      // ignore
-    }
-  }, [])
+
 
   useEffect(() => {
     // ДИАГНОСТИКА: смотрим, что приходит от MAX Bridge
@@ -771,7 +752,7 @@ function App() {
   if (loading) {
     return (
       <AppShell>
-        <LoadingState />
+        <LoadingSkeleton />
       </AppShell>
     )
   }
@@ -1540,10 +1521,8 @@ function ResultsScreen({
                   onOpen(measure)
                 }
               >
-                <div className="measure-number">
-                  {String(
-                    index + 1
-                  ).padStart(2, '0')}
+                <div className="measure-icon">
+                  {measure.icon || '📌'}
                 </div>
 
                 <div className="measure-copy">
@@ -1692,6 +1671,10 @@ function MeasureScreen({
           'support'
             ? 'МЕРА ПОДДЕРЖКИ'
             : 'ШАГ МАРШРУТА'}
+        </div>
+
+        <div className="detail-icon">
+          {measure.icon || '📌'}
         </div>
 
         <h1>
@@ -3084,6 +3067,40 @@ function SavingsBlock({ recommendations, scenario }) {
         Требует подтверждения на пилоте.
       </div>
     </div>
+  )
+}
+
+
+
+function Skeleton({ variant = 'line', count = 1 }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className={`skeleton skeleton-${variant}`}
+        />
+      ))}
+    </>
+  )
+}
+
+function LoadingSkeleton() {
+  return (
+    <section className="content">
+      <div className="skeleton-header">
+        <Skeleton variant="title" />
+        <Skeleton variant="line" count={2} />
+      </div>
+
+      <div className="skeleton-card">
+        <Skeleton variant="line" count={3} />
+      </div>
+
+      <div className="skeleton-card">
+        <Skeleton variant="line" count={4} />
+      </div>
+    </section>
   )
 }
 

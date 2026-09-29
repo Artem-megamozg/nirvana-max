@@ -312,14 +312,6 @@ app.mount(
 
 # ---------- Сервисные роуты ----------
 
-@app.post("/api/_debug")
-async def debug_endpoint(data: dict):
-    print("=== MINI-APP DEBUG ===")
-    print(data)
-    print("=======================")
-    return {"ok": True}
-
-
 @app.get("/health")
 async def health():
     return {
