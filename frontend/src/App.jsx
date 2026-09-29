@@ -1799,6 +1799,51 @@ function MeasureScreen({
         </div>
       </div>
 
+      {(measure.authority || measure.steps?.length || measure.deadline) && (
+        <div className="section-block">
+          <div className="section-heading">
+            <div>
+              <span className="muted-label">
+                ДАЛЬШЕ
+              </span>
+              <h2>Куда и что делать</h2>
+            </div>
+          </div>
+
+          {measure.authority && (
+            <div className="authority-card">
+              <div className="authority-icon">📍</div>
+              <div className="authority-body">
+                <strong>Куда подать</strong>
+                <span>{measure.authority}</span>
+              </div>
+            </div>
+          )}
+
+          {measure.steps?.length > 0 && (
+            <div className="steps-card">
+              <div className="steps-title">Пошагово</div>
+              {measure.steps.map((step, i) => (
+                <div key={i} className="step-row">
+                  <span className="step-number">{i + 1}</span>
+                  <span className="step-text">{step}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {measure.deadline && (
+            <div className="deadline-card">
+              <div className="deadline-icon">⏱</div>
+              <div className="deadline-body">
+                <strong>Срок рассмотрения</strong>
+                <span>{measure.deadline}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {measure.missing?.length ? (
         <div className="warning-card">
           <div className="warning-title">

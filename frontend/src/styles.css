@@ -2394,3 +2394,134 @@ button:disabled {
   margin-top: 2px;
   font-weight: 500;
 }
+
+/* === Куда и что делать === */
+
+.authority-card,
+.deadline-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #f7f7fb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.authority-icon,
+.deadline-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.authority-body,
+.deadline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.authority-body strong,
+.deadline-body strong {
+  font-size: 13px;
+  color: #6b6b7b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.authority-body span,
+.deadline-body span {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.steps-card {
+  background: #fff;
+  border: 1px solid #e5e5ef;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.steps-title {
+  font-size: 13px;
+  color: #6b6b7b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.step-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.step-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.step-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(122, 92, 250, 0.12);
+  color: #6a3df5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.45;
+  padding-top: 2px;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .authority-card,
+  .deadline-card {
+    background: #1f1f2a;
+  }
+
+  .authority-body strong,
+  .deadline-body strong {
+    color: #9a9aa8;
+  }
+
+  .authority-body span,
+  .deadline-body span {
+    color: #f0f0f5;
+  }
+
+  .steps-card {
+    background: #1f1f2a;
+    border-color: #333344;
+  }
+
+  .steps-title {
+    color: #9a9aa8;
+  }
+
+  .step-text {
+    color: #f0f0f5;
+  }
+
+  .step-row {
+    border-bottom-color: #333344;
+  }
+}
