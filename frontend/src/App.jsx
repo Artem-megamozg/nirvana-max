@@ -137,6 +137,7 @@ function App() {
     useState([])
 
   const [scenarios, setScenarios] = useState([])
+  const [consentGiven, setConsentGiven] = useState(false)
   const [profile, setProfile] = useState(null)
   const [profileForm, setProfileForm] =
     useState(emptyProfile)
@@ -299,6 +300,27 @@ function App() {
       setHistory(
         historyData?.items || []
       )
+
+      // Проверяем согласие на сервере (всегда, localStorage не надёжен)
+      try {
+        const cRes = await fetch(
+          `/api/profile/${encodeURIComponent(userId)}/consent`
+        )
+        const cData = await cRes.json()
+        if (cData?.consent) {
+          setConsentGiven(true)
+          localStorage.setItem('nirvana_consent_v1', 'true')
+        } else {
+          setConsentGiven(false)
+          localStorage.removeItem('nirvana_consent_v1')
+        }
+      } catch {
+        // Если сервер недоступен — пробуем localStorage
+        const localConsent = localStorage.getItem('nirvana_consent_v1')
+        if (localConsent === 'true') {
+          setConsentGiven(true)
+        }
+      }
     } catch (err) {
       setError(
         err.message ||
@@ -306,6 +328,54 @@ function App() {
       )
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function removeProfile() {
+    const confirmed = window.confirm(
+      'Удалить профиль и все данные?\n\n' +
+      'Это действие нельзя отменить: профиль, задачи, ' +
+      'напоминания и история будут удалены.'
+    )
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(
+        `/api/profile/${encodeURIComponent(userId)}`,
+        { method: 'DELETE' }
+      )
+      if (!res.ok) throw new Error('HTTP ' + res.status)
+
+      localStorage.removeItem('nirvana_consent_v1')
+      setConsentGiven(false)
+      setProfile(null)
+      setTasks([])
+      setReminders([])
+      setHistory([])
+      setRecommendations([])
+      setSelectedMeasure(null)
+      setScreen(SCREENS.HOME)
+      showToast('Профиль удалён')
+    } catch (err) {
+      setError('Не удалось удалить профиль')
+    }
+  }
+
+  async function giveConsent() {
+    try {
+      await fetch(
+        `/api/profile/${encodeURIComponent(userId)}/consent`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, consent: true }),
+        }
+      )
+      localStorage.setItem('nirvana_consent_v1', 'true')
+      setConsentGiven(true)
+      haptic('success')
+    } catch (err) {
+      setError('Не удалось сохранить согласие')
     }
   }
 
@@ -767,6 +837,14 @@ function App() {
     )
   }
 
+  if (!consentGiven) {
+    return (
+      <AppShell>
+        <ConsentScreen onAccept={giveConsent} />
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <div className="app">
@@ -822,6 +900,7 @@ function App() {
               setProfile(updatedProfile)
             }}
             onToast={showToast}
+            onDelete={removeProfile}
           />
         )}
 
@@ -1906,14 +1985,24 @@ function MeasureScreen({
       </div>
 
       <div className="action-stack">
-        <button
-          className="primary-button full"
-          onClick={onTask}
-          disabled={loading}
-        >
-          Добавить в мой маршрут
-          <span>→</span>
-        </button>
+        {measure.in_route ? (
+          <div className="in-route-badge">
+            <span className="in-route-icon">✓</span>
+            <div className="in-route-text">
+              <strong>Уже в маршруте</strong>
+              <span>Задача создана — откройте раздел «Маршрут»</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="primary-button full"
+            onClick={onTask}
+            disabled={loading}
+          >
+            Добавить в мой маршрут
+            <span>→</span>
+          </button>
+        )}
 
         <div className="reminder-options">
           <div className="muted-label">НАПОМНИТЬ</div>
@@ -2614,6 +2703,7 @@ function MyProfileScreen({
   onBack,
   onSaved,
   onToast,
+  onDelete,
 }) {
   const [form, setForm] = useState(() => ({
     full_name: profile?.full_name || maxUser?.first_name || '',
@@ -2837,6 +2927,19 @@ function MyProfileScreen({
       >
         ← На главную
       </button>
+
+      <button
+        className="danger-button full"
+        onClick={onDelete}
+      >
+        Удалить профиль и все данные
+      </button>
+
+      <div className="danger-note">
+        Удаление необратимо: профиль, задачи, напоминания
+        и история будут стёрты (152-ФЗ, право на забвение).
+      </div>
+
     </section>
   )
 }
@@ -3157,6 +3260,91 @@ function LoadingSkeleton() {
 
       <div className="skeleton-card">
         <Skeleton variant="line" count={4} />
+      </div>
+    </section>
+  )
+}
+
+
+
+function ConsentScreen({ onAccept }) {
+  const [checked, setChecked] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleAccept() {
+    if (!checked) return
+    setLoading(true)
+    try {
+      await onAccept()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="content consent-screen">
+      <div className="consent-icon">🔒</div>
+
+      <h1>Добро пожаловать в Nirvana</h1>
+
+      <p className="consent-intro">
+        Прежде чем начать, нам нужно ваше согласие
+        на обработку персональных данных.
+      </p>
+
+      <div className="consent-card">
+        <div className="consent-title">
+          Что мы обрабатываем
+        </div>
+        <ul className="consent-list">
+          <li>Данные профиля: регион, возраст, состав семьи</li>
+          <li>Задачи в маршруте и напоминания</li>
+          <li>Историю действий в приложении</li>
+        </ul>
+
+        <div className="consent-title">
+          Как мы храним данные
+        </div>
+        <ul className="consent-list">
+          <li>Данные хранятся только на нашем сервере</li>
+          <li>Мы не передаём их третьим лицам</li>
+          <li>Вы можете удалить все данные в любой момент</li>
+        </ul>
+
+        <div className="consent-title">
+          Ваши права (152-ФЗ)
+        </div>
+        <ul className="consent-list">
+          <li>Получить доступ к своим данным</li>
+          <li>Исправить неточные данные</li>
+          <li>Удалить профиль и все данные</li>
+        </ul>
+      </div>
+
+      <label className="consent-checkbox">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => setChecked(e.target.checked)}
+        />
+        <span>
+          Я согласен(на) на обработку персональных
+          данных в соответствии с 152-ФЗ
+        </span>
+      </label>
+
+      <button
+        className="primary-button full"
+        onClick={handleAccept}
+        disabled={!checked || loading}
+      >
+        {loading ? 'Сохраняем...' : 'Продолжить'}
+      </button>
+
+      <div className="consent-note">
+        Мы не используем ваши данные для рекламы.
+        Вы можете отозвать согласие в любой момент,
+        удалив профиль в разделе «Профиль».
       </div>
     </section>
   )

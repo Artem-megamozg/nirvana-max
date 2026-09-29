@@ -21,6 +21,7 @@ from rules import (
 from storage import (
     add_feedback,
     add_history,
+    delete_profile,
     complete_task,
     create_reminder,
     create_task,
@@ -144,6 +145,11 @@ class ExplainRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     vote: int = Field(..., ge=-1, le=1)
     user_id: str | None = None
+
+
+class ConsentRequest(BaseModel):
+    user_id: str
+    consent: bool = True
 
 
 class ProfileMetaRequest(BaseModel):
@@ -362,6 +368,47 @@ async def save_profile(data: ProfileRequest):
     }
 
 
+@app.post("/api/profile/{user_id}/consent")
+async def give_consent(user_id: str, data: ConsentRequest):
+    """Фиксирует согласие на обработку персональных данных."""
+    if not data.consent:
+        raise HTTPException(status_code=400, detail="Consent required")
+
+    from storage import get_conn, now_iso
+    conn = get_conn()
+    conn.execute(
+        """
+        INSERT INTO profiles (user_id, consent_given_at, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            consent_given_at = excluded.consent_given_at,
+            updated_at = excluded.updated_at
+        """,
+        (user_id, now_iso(), now_iso()),
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+@app.get("/api/profile/{user_id}/consent")
+async def get_consent(user_id: str):
+    """Проверяет, дано ли согласие."""
+    profile = get_profile(user_id)
+    if not profile:
+        return {"consent": False}
+    return {"consent": bool(profile.get("consent_given_at"))}
+
+
+@app.delete("/api/profile/{user_id}")
+async def remove_profile(user_id: str):
+    """Удаляет все данные пользователя (152-ФЗ, право на забвение)."""
+    deleted = delete_profile(user_id)
+    if not deleted:
+        raise HTTPException(status_code=500, detail="Failed to delete profile")
+    return {"ok": True, "deleted": True}
+
+
 # ---------- Рекомендации ----------
 
 @app.get("/api/profile/{user_id}/meta")
@@ -470,6 +517,18 @@ async def measure(measure_id: str, user_id: str | None = None):
         )
 
     result["checklist"] = checklist
+
+    # Проверяем, есть ли уже задача с этой мерой в маршруте
+    if user_id:
+        tasks = get_tasks(user_id) or []
+        in_route = any(
+            t.get("measure_id") == measure_id
+            and t.get("status") != "completed"
+            for t in tasks
+        )
+        result["in_route"] = in_route
+    else:
+        result["in_route"] = False
 
     return result
 

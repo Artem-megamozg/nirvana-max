@@ -607,3 +607,22 @@ def get_feedback_stats(measure_id: str) -> dict:
             down = row["cnt"]
 
     return {"up": up, "down": down}
+
+
+def delete_profile(user_id: str) -> bool:
+    """Полное удаление данных пользователя (152-ФЗ, право на забвение)."""
+    conn = get_conn()
+    try:
+        conn.execute("DELETE FROM profiles WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM tasks WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM reminders WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM checklist_state WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM history WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM benefit_feedback WHERE user_id = ?", (user_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print("delete_profile error:", e)
+        return False
+    finally:
+        conn.close()
