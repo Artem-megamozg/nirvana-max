@@ -2423,6 +2423,13 @@ function SelectField({
   options,
   onChange,
 }) {
+  // Опции могут быть строками или объектами {value, label}
+  const normalized = (options || []).map((opt) =>
+    typeof opt === 'string'
+      ? { value: opt, label: opt }
+      : opt
+  )
+
   return (
     <label className="field">
       <span>
@@ -2430,7 +2437,7 @@ function SelectField({
       </span>
 
       <select
-        value={value}
+        value={value || ''}
         onChange={(event) =>
           onChange(
             event.target.value
@@ -2441,13 +2448,13 @@ function SelectField({
           Выберите
         </option>
 
-        {options.map(
+        {normalized.map(
           (option) => (
             <option
-              key={option}
-              value={option}
+              key={option.value}
+              value={option.value}
             >
-              {option}
+              {option.label}
             </option>
           )
         )}
