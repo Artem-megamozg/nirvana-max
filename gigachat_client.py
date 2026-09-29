@@ -43,8 +43,9 @@ async def rewrite_text(prompt: str, system_prompt: str = "") -> str | None:
         chat = Chat(messages=messages)
 
         client = GigaChat(
+            base_url="https://api.giga.chat/v1",
             credentials=GIGACHAT_AUTH_KEY,
-            verify_ssl_certs=False,
+            verify_ssl_certs=True,
             model="GigaChat-2-Pro",
             timeout=30,
         )
@@ -73,7 +74,7 @@ async def chat_text(history: list[dict[str, str]], system_prompt: str) -> str | 
 
         client = GigaChat(
             credentials=GIGACHAT_AUTH_KEY,
-            verify_ssl_certs=False,
+            verify_ssl_certs=True,
             model="GigaChat-2-Pro",
             timeout=30,
         )
