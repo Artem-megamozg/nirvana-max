@@ -177,14 +177,30 @@ const CATEGORY_ALIASES = {
   seniors: 'senior',
 }
 
-// Каталог мер и сценариев исторически хранит эмодзи в поле icon —
-// подстраховка на случай не мигрированных данных, чтобы старое
-// значение не рендерилось как знак вопроса, а падало на осмысленную
-// иконку по умолчанию.
+// Старые каталоги хранят в поле icon эмодзи, иногда с пробелом на конце.
+// Сопоставляем их с иконками, чтобы устаревший catalog.json не превращал
+// все значки в одинаковый запасной.
+const EMOJI_ALIASES = {
+  '💊': 'medical',
+  '🏥': 'medical',
+  '👨': 'family',
+  '🏠': 'housing',
+  '🎓': 'education',
+  '💰': 'money',
+  '👴': 'senior',
+  '📋': 'documents',
+  '🧾': 'documents',
+  '🚌': 'transport',
+  '♿': 'accessibility',
+}
+
 export function resolveIconName(rawIcon) {
-  if (rawIcon && PATHS[rawIcon]) return rawIcon
-  if (rawIcon && CATEGORY_ALIASES[rawIcon]) return CATEGORY_ALIASES[rawIcon]
-  return 'documents'
+  if (typeof rawIcon !== 'string') return 'documents'
+  const value = rawIcon.replace(/\uFE0F/g, '').trim()
+  if (PATHS[value]) return value
+  if (CATEGORY_ALIASES[value]) return CATEGORY_ALIASES[value]
+  const first = Array.from(value)[0]
+  return EMOJI_ALIASES[first] || 'documents'
 }
 
 export function Icon({ name, size = 20, strokeWidth = 1.8, className = '', style }) {
