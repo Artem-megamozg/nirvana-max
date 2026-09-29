@@ -10,6 +10,7 @@ from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
+from gigachat_client import rewrite_text, is_enabled as gigachat_enabled
 from rules import (
     build_recommendations,
     get_measure,
@@ -681,26 +682,56 @@ async def explain(data: ExplainRequest):
         None,
     )
 
+    # Формируем базовое объяснение (шаблон)
     if target is None:
-        explanation = (
+        base_explanation = (
             "По текущим данным мера поддержки "
             "не попала в персональную выдачу."
         )
     else:
         reasons = target["match"]["reasons"]
-
         if reasons:
-            reason_text = ", ".join(reasons)
-            explanation = (
-                f"Мера подходит вам, потому что {reason_text.lower()}."
+            reason_lines = "\n- ".join(reasons)
+            base_explanation = (
+                f"Мера подходит вам по следующим причинам:\n- {reason_lines}"
             )
         else:
-            explanation = (
+            base_explanation = (
                 "Мера находится в вашем маршруте, "
                 "но для точной проверки нужны дополнительные данные."
             )
 
-    return {"text": explanation, "source": "rules_engine"}
+    # Пробуем переписать через GigaChat
+    source = "rules_engine"
+    final_text = base_explanation
+
+    if gigachat_enabled():
+        system_prompt = (
+            "Ты — помощник сервиса Nirvana. Переписывай причины, "
+            "по которым мера поддержки подходит пользователю, "
+            "связным человеческим языком.\n\n"
+            "КРИТИЧЕСКИ ВАЖНО:\n"
+            "1. НЕ добавляй никаких фактов, цифр, документов или условий, "
+            "которых нет в исходнике.\n"
+            "2. Только переформулируй то, что уже есть.\n"
+            "3. Ответ — 2–3 предложения, обращённых к пользователю.\n"
+            "4. Не ставь диагнозы, не интерпретируй медицину.\n"
+            "5. Верни ТОЛЬКО текст, без пояснений."
+        )
+        prompt = (
+            f"Мера: {item.get('title', '')}\n"
+            f"Описание: {item.get('short_description', '')}\n"
+            f"Причины:\n{base_explanation}\n\n"
+            f"Перепиши так, чтобы было понятно, "
+            f"почему мера подходит именно мне."
+        )
+
+        rewritten = await rewrite_text(prompt, system_prompt)
+        if rewritten:
+            final_text = rewritten
+            source = "gigachat"
+
+    return {"text": final_text, "source": source}
 
 
 # ---------- Ответы на команды ----------
