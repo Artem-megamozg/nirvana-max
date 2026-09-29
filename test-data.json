@@ -1,0 +1,88 @@
+{
+  "_comment": "Тестовые данные для воспроизводимой проверки Nirvana MAX. Заливаются скриптом seed.py.",
+  "demo_profiles": [
+    {
+      "user_id": "demo_family",
+      "full_name": "Анна Петрова",
+      "description": "Мама двоих детей, Ставропольский край",
+      "profile": {
+        "region": "Ставропольский край",
+        "age": 32,
+        "employment": "работаю",
+        "marital_status": "женат/замужем",
+        "income": 22000,
+        "children": [
+          {"name": "Маша", "age": 4},
+          {"name": "Петя", "age": 7}
+        ],
+        "statuses": [],
+        "scenario_id": "family",
+        "full_name": "Анна Петрова",
+        "phone": "+79991234567",
+        "about": "Мама двоих детей, работаю. Хочу проверить, какие выплаты положены."
+      }
+    },
+    {
+      "user_id": "demo_large",
+      "full_name": "Сергей Иванов",
+      "description": "Многодетный отец, Москва",
+      "profile": {
+        "region": "Москва",
+        "age": 41,
+        "employment": "работаю",
+        "marital_status": "женат/замужем",
+        "income": 35000,
+        "children": [
+          {"name": "Иван", "age": 12},
+          {"name": "Катя", "age": 8},
+          {"name": "Миша", "age": 3}
+        ],
+        "statuses": [],
+        "scenario_id": "family",
+        "full_name": "Сергей Иванов",
+        "phone": "+79997654321",
+        "about": "Многодетный отец, ищу все доступные льготы для семьи."
+      }
+    },
+    {
+      "user_id": "demo_relocation",
+      "full_name": "Мария Сидорова",
+      "description": "Переезд, Краснодар",
+      "profile": {
+        "region": "Краснодарский край",
+        "age": 28,
+        "employment": "работаю",
+        "marital_status": "не женат/не замужем",
+        "income": 45000,
+        "children": [],
+        "statuses": [],
+        "scenario_id": "relocation",
+        "full_name": "Мария Сидорова",
+        "phone": "+79995554433",
+        "about": "Переехала в Краснодар. Нужно оформить документы и прикрепиться к поликлинике."
+      }
+    }
+  ],
+  "test_scenarios": [
+    {
+      "id": "family",
+      "title": "Семья и дети",
+      "user_id": "demo_family"
+    },
+    {
+      "id": "relocation",
+      "title": "Переезд",
+      "user_id": "demo_relocation"
+    },
+    {
+      "id": "medical",
+      "title": "Медицинский маршрут",
+      "user_id": "demo_family"
+    }
+  ],
+  "catalog": {
+    "file": "data/catalog.json",
+    "measures_count": 37,
+    "scenarios": ["family", "relocation", "medical"]
+  }
+}

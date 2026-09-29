@@ -1,0 +1,225 @@
+# DATA-API.yaml
+# Описание API решения Nirvana MAX для платформы оценки.
+# Файл описывает обязательные проверки основного функционального сценария.
+
+version: "1.0"
+
+solution:
+  name: "Nirvana MAX — навигатор по мерам поддержки"
+  team: "Nirvana"
+  description: >
+    Бот и мини-приложение в MAX, которые помогают понять,
+    какие меры государственной поддержки положены пользователю,
+    что нужно подготовить и какой следующий шаг предпринять.
+
+base_url: "https://litvinskiy-developer.online"
+
+# Роли: в MVP нет паролей — пользователь идентифицируется по user_id
+# из MAX Bridge. Для проверки можно использовать тестовые user_id.
+roles:
+  user:
+    description: "Обычный пользователь (по user_id из MAX Bridge)"
+    test_user_ids:
+      - demo_family       # Анна Петрова, 2 детей, Ставрополь
+      - demo_large        # Сергей Иванов, 3 детей, Москва
+      - demo_relocation   # Мария Сидорова, переезд, Краснодар
+
+# Обязательные проверки — методы, которые относятся
+# к основной функциональности.
+required_checks:
+
+  - name: "Health check"
+    method: "GET"
+    path: "/health"
+    role: "any"
+    description: "Проверка, что сервис работает."
+    expected_status: [200]
+    response:
+      content_type: "application/json"
+      required_fields: ["status", "service", "version"]
+      example:
+        status: "ok"
+        service: "nirvana-max"
+        version: "2.0.0"
+
+  - name: "Список сценариев"
+    method: "GET"
+    path: "/api/scenarios"
+    role: "any"
+    description: "Возвращает список доступных жизненных ситуаций."
+    expected_status: [200]
+    response:
+      content_type: "application/json"
+      required_fields: ["items"]
+      items_schema:
+        id: string
+        title: string
+        icon: string
+        description: string
+        questions: array
+
+  - name: "Получить профиль"
+    method: "GET"
+    path: "/api/profile"
+    role: "user"
+    query_params:
+      user_id: string (required)
+    description: "Возвращает профиль пользователя или null."
+    expected_status: [200]
+    response:
+      content_type: "application/json"
+      required_fields: ["exists"]
+      example:
+        exists: true
+        profile:
+          user_id: "demo_family"
+          region: "Ставропольский край"
+          age: 32
+          children: []
+
+  - name: "Сохранить профиль"
+    method: "POST"
+    path: "/api/profile"
+    role: "user"
+    description: "Сохраняет или обновляет профиль пользователя."
+    body_schema:
+      user_id: string (required)
+      region: string
+      age: integer
+      employment: string
+      marital_status: string
+      income: number
+      children: array of {name, age}
+      statuses: array of string
+      scenario_id: string
+      full_name: string
+      phone: string
+      about: string
+    expected_status: [200, 400, 422]
+    response:
+      content_type: "application/json"
+      required_fields: ["ok", "profile"]
+
+  - name: "Рекомендации по профилю"
+    method: "POST"
+    path: "/api/recommendations"
+    role: "user"
+    description: "Возвращает список мер, подходящих пользователю."
+    body_schema:
+      user_id: string
+      scenario_id: string
+      category: string
+      region: string
+      income_below_pm: boolean
+      children_count: integer
+    expected_status: [200]
+    response:
+      content_type: "application/json"
+      required_fields: ["benefits", "count", "scenario_id"]
+      benefits_schema:
+        id: string
+        title: string
+        short_description: string
+        match:
+          matched: boolean
+          reasons: array of string
+
+  - name: "Карточка меры"
+    method: "GET"
+    path: "/api/measures/{measure_id}"
+    role: "user"
+    path_params:
+      measure_id: string (required)
+    query_params:
+      user_id: string (optional)
+    description: "Возвращает карточку меры с чек-листом."
+    expected_status: [200, 404]
+    response:
+      content_type: "application/json"
+      required_fields: ["id", "title", "checklist"]
+
+  - name: "Создать задачу в маршруте"
+    method: "POST"
+    path: "/api/tasks"
+    role: "user"
+    description: "Добавляет задачу в маршрут пользователя."
+    body_schema:
+      user_id: string (required)
+      title: string (required)
+      description: string
+      scenario_id: string
+      measure_id: string
+      priority: integer
+    expected_status: [200, 422]
+    response:
+      content_type: "application/json"
+      required_fields: ["ok", "task_id"]
+
+  - name: "Список задач"
+    method: "GET"
+    path: "/api/tasks"
+    role: "user"
+    query_params:
+      user_id: string (required)
+    expected_status: [200]
+    response:
+      content_type: "application/json"
+      required_fields: ["items"]
+
+  - name: "Завершить задачу"
+    method: "POST"
+    path: "/api/tasks/{task_id}/complete"
+    role: "user"
+    path_params:
+      task_id: integer (required)
+    body_schema:
+      user_id: string (required)
+    expected_status: [200, 404]
+
+  - name: "Создать напоминание"
+    method: "POST"
+    path: "/api/reminders"
+    role: "user"
+    description: "Создаёт напоминание, которое бот пришлёт в MAX."
+    body_schema:
+      user_id: string (required)
+      remind_at: string (required, ISO-8601)
+      task_id: integer
+    expected_status: [200, 400, 422]
+
+  - name: "Удалить напоминание"
+    method: "DELETE"
+    path: "/api/reminders/{reminder_id}"
+    role: "user"
+    path_params:
+      reminder_id: integer (required)
+    query_params:
+      user_id: string (required)
+    expected_status: [200, 404]
+
+  - name: "Объяснить, почему мера подходит"
+    method: "POST"
+    path: "/api/explain"
+    role: "user"
+    body_schema:
+      user_id: string (required)
+      measure_id: string (required)
+    expected_status: [200, 404]
+    response:
+      content_type: "application/json"
+      required_fields: ["text", "source"]
+
+  - name: "Вебхук MAX"
+    method: "POST"
+    path: "/webhook"
+    role: "max-platform"
+    description: >
+      Принимает события от MAX (message_created, message_callback,
+      bot_started). Не вызывается вручную при проверке.
+    expected_status: [200]
+
+notes:
+  - "Все эндпоинты работают по HTTPS через Nginx на https://litvinskiy-developer.online"
+  - "Мини-приложение доступно по /app/"
+  - "Для проверки сценария с демо-данными см. seed.py и раздел README «Демо-данные»"
+  - "Аутентификация не используется — пользователь идентифицируется по user_id из MAX Bridge"
