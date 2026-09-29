@@ -2378,3 +2378,390 @@ button:disabled {
     color: #fcd34d;
   }
 }
+
+.children-hint {
+  font-size: 12px;
+  color: #9a9aa8;
+  margin-top: 8px;
+  padding-left: 4px;
+  line-height: 1.4;
+}
+
+/* Дата и время напоминания */
+.reminder-date {
+  font-size: 12px;
+  color: #6b6b7b;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* === Куда и что делать === */
+
+.authority-card,
+.deadline-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #f7f7fb;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.authority-icon,
+.deadline-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.authority-body,
+.deadline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.authority-body strong,
+.deadline-body strong {
+  font-size: 13px;
+  color: #6b6b7b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.authority-body span,
+.deadline-body span {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+.steps-card {
+  background: #fff;
+  border: 1px solid #e5e5ef;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.steps-title {
+  font-size: 13px;
+  color: #6b6b7b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.step-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f5;
+}
+
+.step-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.step-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(122, 92, 250, 0.12);
+  color: #6a3df5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 15px;
+  color: #1a1a1a;
+  line-height: 1.45;
+  padding-top: 2px;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .authority-card,
+  .deadline-card {
+    background: #1f1f2a;
+  }
+
+  .authority-body strong,
+  .deadline-body strong {
+    color: #9a9aa8;
+  }
+
+  .authority-body span,
+  .deadline-body span {
+    color: #f0f0f5;
+  }
+
+  .steps-card {
+    background: #1f1f2a;
+    border-color: #333344;
+  }
+
+  .steps-title {
+    color: #9a9aa8;
+  }
+
+  .step-text {
+    color: #f0f0f5;
+  }
+
+  .step-row {
+    border-bottom-color: #333344;
+  }
+}
+
+/* === Скелетоны === */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f5 0%,
+    #e5e5ef 50%,
+    #f0f0f5 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 28px;
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+.skeleton-line {
+  height: 14px;
+  width: 100%;
+}
+
+.skeleton-line:nth-child(even) {
+  width: 85%;
+}
+
+.skeleton-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.skeleton-header {
+  margin-bottom: 24px;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* === Плавные переходы между экранами === */
+
+.content {
+  animation: fadeInUp 0.25s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #1f1f2a 0%,
+      #2a2a38 50%,
+      #1f1f2a 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  .skeleton-card {
+    background: #1f1f2a;
+  }
+}
+
+/* === Иконки мер === */
+
+.measure-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(122, 92, 250, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.detail-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(122, 92, 250, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+/* Тёмная тема */
+@media (prefers-color-scheme: dark) {
+  .measure-icon,
+  .detail-icon {
+    background: rgba(122, 92, 250, 0.2);
+  }
+}
+
+/* === Фикс: иконки мер не залезают на текст === */
+
+.measure-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.measure-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: rgba(122, 92, 250, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.measure-copy {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.measure-copy strong,
+.measure-copy span,
+.measure-copy small {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* === Обратная связь === */
+
+.feedback-block {
+  background: #f7f7fb;
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+
+.feedback-title {
+  font-size: 14px;
+  color: #6b6b7b;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.feedback-button {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e5e5ef;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #1a1a1a;
+}
+
+.feedback-button.up:hover {
+  background: #d1fae5;
+  border-color: #22c55e;
+  color: #065f46;
+}
+
+.feedback-button.down:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .feedback-block { background: #1f1f2a; }
+  .feedback-title { color: #9a9aa8; }
+  .feedback-button {
+    background: #1f1f2a;
+    border-color: #333344;
+    color: #f0f0f5;
+  }
+}
+
+/* Благодарность за отзыв */
+.feedback-thanks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+  color: #22c55e;
+  font-size: 15px;
+  font-weight: 600;
+  animation: fadeInUp 0.25s ease-out;
+}
+
+.feedback-thanks-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}

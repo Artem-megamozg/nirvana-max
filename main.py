@@ -8,8 +8,9 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from gigachat_client import rewrite_text, is_enabled as gigachat_enabled
 from rules import (
     build_recommendations,
     get_measure,
@@ -18,6 +19,7 @@ from rules import (
     reload_catalog,
 )
 from storage import (
+    add_feedback,
     add_history,
     complete_task,
     create_reminder,
@@ -67,7 +69,18 @@ reminder_worker_task = None
 
 class Child(BaseModel):
     name: str = ""
-    age: int | None = None
+    age: int | float | str | None = None
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def _normalize_age(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            # Приводим к целому числу
+            return int(float(v))
+        except (ValueError, TypeError):
+            return None
 
 
 class ProfileRequest(BaseModel):
@@ -86,6 +99,7 @@ class ProfileRequest(BaseModel):
     full_name: str | None = None
     phone: str | None = None
     about: str | None = None
+    gender: str | None = None
 
 
 class RecommendationRequest(BaseModel):
@@ -127,6 +141,11 @@ class ExplainRequest(BaseModel):
     measure_id: str
 
 
+class FeedbackRequest(BaseModel):
+    vote: int = Field(..., ge=-1, le=1)
+    user_id: str | None = None
+
+
 class ProfileMetaRequest(BaseModel):
     full_name: str | None = None
     phone: str | None = None
@@ -141,9 +160,14 @@ async def send_message(
     text: str,
     include_app_button: bool = False,
     app_url: str | None = None,
+    buttons: list | None = None,
 ):
     """
     Отправляет сообщение пользователю в MAX.
+
+    Параметры:
+    - include_app_button=True: добавить кнопку «Открыть Nirvana» (open_app)
+    - buttons=[[{type, text, payload}], ...]: произвольные inline-кнопки
 
     Важно: кнопка open_app НЕ принимает поле webApp — URL мини-приложения
     привязывается к боту в кабинете MAX for Developers, а не в кнопке.
@@ -154,21 +178,28 @@ async def send_message(
 
     payload: dict = {"text": text}
 
+    final_buttons = []
+
+    if buttons:
+        # Кнопки, переданные явно (callback, link и т.п.)
+        final_buttons = buttons
+
     if include_app_button:
+        final_buttons = final_buttons + [
+            [
+                {
+                    "type": "open_app",
+                    "text": "Открыть Nirvana",
+                    "web_app": MAX_BOT_USERNAME,
+                }
+            ]
+        ]
+
+    if final_buttons:
         payload["attachments"] = [
             {
                 "type": "inline_keyboard",
-                "payload": {
-                    "buttons": [
-                        [
-                            {
-                                "type": "open_app",
-                                "text": "Открыть Nirvana",
-                                "web_app": MAX_BOT_USERNAME,
-                            }
-                        ]
-                    ]
-                },
+                "payload": {"buttons": final_buttons},
             }
         ]
 
@@ -244,6 +275,7 @@ async def reminder_loop():
         await asyncio.sleep(30)
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     global reminder_worker_task
 
@@ -252,15 +284,23 @@ async def lifespan(app: FastAPI):
 
     reminder_worker_task = asyncio.create_task(reminder_loop())
 
+    # Регистрируем команды в меню MAX
+    asyncio.create_task(register_bot_commands())
+
+    # Запускаем еженедельный дайджест (временно отключено)
+    # digest_task = asyncio.create_task(weekly_digest_loop())
+
     yield
 
     if reminder_worker_task:
         reminder_worker_task.cancel()
-
         try:
             await reminder_worker_task
         except asyncio.CancelledError:
             pass
+
+    # digest_task отключён
+    pass
 
 
 app = FastAPI(
@@ -409,31 +449,23 @@ async def measure(measure_id: str, user_id: str | None = None):
     else:
         state = {}
 
+    # Берём документы из каталога меры
+    docs = item.get("documents") or []
+    if not docs:
+        docs = [
+            "Паспорт заявителя",
+            "Документы, подтверждающие право на меру",
+        ]
+
     checklist = []
-
-    default_items = [
-        {
-            "id": f"{measure_id}_passport",
-            "title": "Паспорт / основной документ",
-            "required": True,
-        },
-        {
-            "id": f"{measure_id}_children",
-            "title": "Документы на детей",
-            "required": item.get("scenario") == "family",
-        },
-        {
-            "id": f"{measure_id}_income",
-            "title": "Подтверждение дохода при необходимости",
-            "required": "доход" in " ".join(item.get("conditions", [])).lower(),
-        },
-    ]
-
-    for checklist_item in default_items:
+    for i, doc in enumerate(docs):
+        item_id = f"{measure_id}_doc_{i}"
         checklist.append(
             {
-                **checklist_item,
-                "completed": state.get(checklist_item["id"], False),
+                "id": item_id,
+                "title": doc,
+                "required": True,
+                "completed": state.get(item_id, False),
             }
         )
 
@@ -451,26 +483,24 @@ async def checklist(measure_id: str, user_id: str = Query(...)):
 
     state = get_checklist_state(user_id, measure_id)
 
-    items = [
-        {
-            "id": f"{measure_id}_passport",
-            "title": "Паспорт / основной документ",
-            "required": True,
-        },
-        {
-            "id": f"{measure_id}_children",
-            "title": "Документы на детей",
-            "required": item.get("scenario") == "family",
-        },
-        {
-            "id": f"{measure_id}_income",
-            "title": "Подтверждение дохода при необходимости",
-            "required": "доход" in " ".join(item.get("conditions", [])).lower(),
-        },
-    ]
+    docs = item.get("documents") or []
+    if not docs:
+        docs = [
+            "Паспорт заявителя",
+            "Документы, подтверждающие право на меру",
+        ]
 
-    for item_data in items:
-        item_data["completed"] = state.get(item_data["id"], False)
+    items = []
+    for i, doc in enumerate(docs):
+        item_id = f"{measure_id}_doc_{i}"
+        items.append(
+            {
+                "id": item_id,
+                "title": doc,
+                "required": True,
+                "completed": state.get(item_id, False),
+            }
+        )
 
     return {
         "measure_id": measure_id,
@@ -640,26 +670,162 @@ async def explain(data: ExplainRequest):
         None,
     )
 
+    # Формируем базовое объяснение (шаблон)
     if target is None:
-        explanation = (
+        base_explanation = (
             "По текущим данным мера поддержки "
             "не попала в персональную выдачу."
         )
     else:
         reasons = target["match"]["reasons"]
-
         if reasons:
-            reason_text = ", ".join(reasons)
-            explanation = (
-                f"Мера подходит вам, потому что {reason_text.lower()}."
+            reason_lines = "\n- ".join(reasons)
+            base_explanation = (
+                f"Мера подходит вам по следующим причинам:\n- {reason_lines}"
             )
         else:
-            explanation = (
+            base_explanation = (
                 "Мера находится в вашем маршруте, "
                 "но для точной проверки нужны дополнительные данные."
             )
 
-    return {"text": explanation, "source": "rules_engine"}
+    # Пробуем переписать через GigaChat
+    source = "rules_engine"
+    final_text = base_explanation
+
+    if gigachat_enabled():
+        system_prompt = (
+            "Ты — помощник сервиса Nirvana. Переписывай причины, "
+            "по которым мера поддержки подходит пользователю, "
+            "связным человеческим языком.\n\n"
+            "КРИТИЧЕСКИ ВАЖНО:\n"
+            "1. НЕ добавляй никаких фактов, цифр, документов или условий, "
+            "которых нет в исходнике.\n"
+            "2. Только переформулируй то, что уже есть.\n"
+            "3. Ответ — 2–3 предложения, обращённых к пользователю.\n"
+            "4. Не ставь диагнозы, не интерпретируй медицину.\n"
+            "5. Верни ТОЛЬКО текст, без пояснений."
+        )
+        prompt = (
+            f"Мера: {item.get('title', '')}\n"
+            f"Описание: {item.get('short_description', '')}\n"
+            f"Причины:\n{base_explanation}\n\n"
+            f"Перепиши так, чтобы было понятно, "
+            f"почему мера подходит именно мне."
+        )
+
+        rewritten = await rewrite_text(prompt, system_prompt)
+        if rewritten:
+            final_text = rewritten
+            source = "gigachat"
+
+    return {"text": final_text, "source": source}
+
+
+@app.post("/api/measures/{measure_id}/feedback")
+async def measure_feedback(measure_id: str, data: FeedbackRequest):
+    item = get_measure(measure_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Measure not found")
+
+    if data.vote not in (-1, 1):
+        raise HTTPException(status_code=400, detail="vote must be 1 or -1")
+
+    add_feedback(measure_id, data.vote, data.user_id)
+    return {"ok": True}
+
+
+# ---------- Ответы на команды ----------
+
+def build_help_reply() -> str:
+    return (
+        "🤖 Что умеет Nirvana\n\n"
+        "Я помогаю разобраться, какие меры поддержки вам положены, "
+        "и не потерять следующий шаг.\n\n"
+        "В мини-приложении:\n"
+        "• профиль с вашими данными\n"
+        "• подбор мер под вашу ситуацию\n"
+        "• чек-лист документов по каждой мере\n"
+        "• маршрут с задачами и напоминаниями\n\n"
+        "Команды в боте:\n"
+        "/start — начать работу\n"
+        "/help — эта справка\n"
+        "/scenario — быстрый выбор ситуации\n"
+        "/status — мои задачи и напоминания\n\n"
+        "Откройте приложение, чтобы продолжить →"
+    )
+
+
+def build_status_reply(user_id: str) -> str:
+    profile = get_profile(user_id)
+    if not profile:
+        return (
+            "Пока не вижу ваш профиль.\n\n"
+            "Откройте приложение и заполните данные — "
+            "тогда я смогу показать ваш маршрут."
+        )
+
+    tasks = get_tasks(user_id) or []
+    pending = [t for t in tasks if t.get("status") != "completed"]
+
+    reminders = get_reminders(user_id) or []
+    active_reminders = [r for r in reminders if r.get("active")]
+
+    lines = ["📊 Ваш статус", ""]
+
+    if pending:
+        lines.append(f"📋 Активных задач: {len(pending)}")
+        for t in pending[:3]:
+            lines.append(f"   • {t.get('title', '—')}")
+        if len(pending) > 3:
+            lines.append(f"   … и ещё {len(pending) - 3}")
+    else:
+        lines.append("📋 Активных задач нет")
+
+    lines.append("")
+
+    if active_reminders:
+        lines.append(f"⏰ Активных напоминаний: {len(active_reminders)}")
+        next_reminder = active_reminders[0]
+        remind_at = next_reminder.get("remind_at", "")
+        lines.append(f"   ближайшее: {remind_at}")
+    else:
+        lines.append("⏰ Активных напоминаний нет")
+
+    lines.append("")
+    lines.append("Откройте приложение для подробностей →")
+
+    return "\n".join(lines)
+
+
+# ---------- Регистрация команд в MAX ----------
+
+async def register_bot_commands():
+    """Регистрирует команды бота в меню MAX (один раз при старте)."""
+    if not MAX_TOKEN:
+        return
+    commands = [
+        {"name": "start", "description": "Начать работу с Nirvana"},
+        {"name": "help", "description": "Что умеет бот и приложение"},
+        {"name": "scenario", "description": "Выбрать жизненную ситуацию"},
+        {"name": "status", "description": "Мои задачи и напоминания"},
+    ]
+    try:
+        async with httpx.AsyncClient(
+            timeout=15,
+            verify=CA_BUNDLE if CA_BUNDLE else True,
+        ) as client:
+            r = await client.patch(
+                f"{MAX_API}/me/commands",
+                headers={
+                    "Authorization": MAX_TOKEN,
+                    "Content-Type": "application/json",
+                },
+                json={"commands": commands},
+            )
+            print("REGISTER COMMANDS:", r.status_code, r.text[:200])
+    except Exception as e:
+        print("REGISTER COMMANDS ERROR:", repr(e))
 
 
 # ---------- Проактивные ответы ----------
@@ -760,12 +926,49 @@ async def webhook(
 
         if user_id:
             try:
-                if text in {"/start", "начать", "помощь", "nirvana", "start"}:
+                if text in {"/start", "начать", "nirvana", "start"}:
                     reply = build_start_reply(str(user_id))
                     await send_message(
                         str(user_id),
                         reply,
                         include_app_button=True,
+                    )
+                elif text in {"/help", "help", "помощь"}:
+                    reply = build_help_reply()
+                    await send_message(
+                        str(user_id),
+                        reply,
+                        include_app_button=True,
+                    )
+                elif text in {"/status", "status", "статус", "мой статус"}:
+                    reply = build_status_reply(str(user_id))
+                    await send_message(
+                        str(user_id),
+                        reply,
+                        include_app_button=True,
+                    )
+                elif text in {"/scenario", "scenario", "сценарий"}:
+                    await send_message(
+                        str(user_id),
+                        (
+                            "Какая у вас ситуация?\n\n"
+                            "Выберите — подскажу, какой сценарий открыть:"
+                        ),
+                        include_app_button=False,
+                        buttons=[
+                            [
+                                {"type": "callback", "text": "👨‍👩‍👧 Семья и дети", "payload": "scenario_family"},
+                            ],
+                            [
+                                {"type": "callback", "text": "🏠 Переезд", "payload": "scenario_relocation"},
+                            ],
+                            [
+                                {"type": "callback", "text": "⚕️ Медицинский маршрут", "payload": "scenario_medical"},
+                            ],
+                            [
+                                {"type": "callback", "text": "Открыть приложение", "payload": "open_app"},
+                            ],
+                        ],
                     )
                 elif text in {
                     "профиль",
@@ -794,18 +997,75 @@ async def webhook(
                 print("SEND ERROR (message_created):", repr(error))
 
     elif update_type == "message_callback":
-        # На всякий случай — обработаем callback-кнопки, если они появятся
         callback = update.get("callback") or {}
         user = callback.get("user") or {}
         user_id = user.get("user_id")
+        payload = callback.get("payload") or ""
 
         if user_id:
             try:
-                await send_message(
-                    str(user_id),
-                    "Откройте Nirvana, чтобы продолжить.",
-                    include_app_button=True,
-                )
+                if payload == "scenario_family":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "👨‍👩‍👧 Сценарий «Семья и дети»\n\n"
+                            "Открою приложение сразу на этом сценарии — "
+                            "заполните данные, и я подберу меры, которые "
+                            "положены вашей семье."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=family",
+                                }
+                            ]
+                        ],
+                    )
+                elif payload == "scenario_relocation":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "🏠 Сценарий «Переезд»\n\n"
+                            "Открою приложение сразу на этом сценарии — "
+                            "выберите его, чтобы получить маршрут после переезда."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=relocation",
+                                }
+                            ]
+                        ],
+                    )
+                elif payload == "scenario_medical":
+                    await send_message(
+                        str(user_id),
+                        (
+                            "⚕️ Сценарий «Медицинский маршрут»\n\n"
+                            "Открою приложение сразу на этом сценарии. "
+                            "Здесь мы строим только административный маршрут: "
+                            "куда обратиться и что подготовить. Не заменяем врача."
+                        ),
+                        buttons=[
+                            [
+                                {
+                                    "type": "open_app",
+                                    "text": "Открыть сценарий",
+                                    "web_app": f"{MAX_BOT_USERNAME}?startapp=medical",
+                                }
+                            ]
+                        ],
+                    )
+                else:
+                    await send_message(
+                        str(user_id),
+                        "Откройте Nirvana, чтобы продолжить.",
+                        include_app_button=True,
+                    )
             except Exception as error:
                 print("SEND ERROR (message_callback):", repr(error))
 

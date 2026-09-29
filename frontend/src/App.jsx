@@ -20,7 +20,9 @@ import {
   getRecommendations,
   getReminders,
   getScenarios,
+  getStartParam,
   getTasks,
+  sendFeedback,
   getUserId,
   saveProfile,
   updateChecklist,
@@ -43,6 +45,7 @@ const emptyProfile = {
   employment: '',
   marital_status: '',
   income: '',
+  gender: '',
   children: [],
   statuses: [],
 }
@@ -89,6 +92,25 @@ function formatDate(value) {
     year: 'numeric',
   })
 }
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const datePart = date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const timePart = date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `${datePart}, ${timePart}`
+}
+
 
 function reminderIso(hours = 24) {
   return new Date(
@@ -145,6 +167,48 @@ function App() {
   useEffect(() => {
     loadInitialData()
   }, [])
+
+
+
+  useEffect(() => {
+    // ДИАГНОСТИКА: смотрим, что приходит от MAX Bridge
+    try {
+      const w = window.WebApp
+      console.log('=== WebApp диагностика ===')
+      console.log('WebApp есть:', !!w)
+      console.log('initDataUnsafe:', w?.initDataUnsafe)
+      console.log('start_param:', w?.initDataUnsafe?.start_param)
+      console.log('startParam:', w?.startParam)
+      console.log('location.search:', window.location.search)
+      console.log('location.hash:', window.location.hash)
+    } catch (e) {
+      console.log('Diagnostic error:', e)
+    }
+  }, [])
+
+  // Обработка start_param для диплинков из бота
+  useEffect(() => {
+    if (!scenarios.length) return
+
+    const param = getStartParam()
+    if (!param) return
+
+    // Приводим к id сценария: family / relocation / medical
+    const map = {
+      family: 'family',
+      relocation: 'relocation',
+      medical: 'medical',
+    }
+
+    const scenarioId = map[param]
+    if (!scenarioId) return
+
+    const scenario = scenarios.find((s) => s.id === scenarioId)
+    if (!scenario) return
+
+    // Открываем сценарий автоматически
+    selectScenario(scenario)
+  }, [scenarios])
 
   useEffect(() => {
     const backButton =
@@ -297,6 +361,7 @@ function App() {
         employment: profile.employment || '',
         marital_status: profile.marital_status || '',
         income: profile.income || '',
+        gender: profile.gender || '',
         children:
           profile.children?.length
             ? profile.children
@@ -346,6 +411,8 @@ function App() {
         user_id: userId,
         region:
           profileForm.region.trim(),
+        gender:
+          profileForm.gender || null,
         age:
           Number(profileForm.age),
         employment:
@@ -560,6 +627,15 @@ function App() {
     }
   }
 
+  async function sendMeasureFeedback(measureId, vote) {
+    try {
+      await sendFeedback(measureId, vote, userId)
+      haptic('success')
+    } catch (err) {
+      showToast('Не удалось отправить отзыв', 'error')
+    }
+  }
+
   async function markTaskDone(
     taskId
   ) {
@@ -686,7 +762,7 @@ function App() {
   if (loading) {
     return (
       <AppShell>
-        <LoadingState />
+        <LoadingSkeleton />
       </AppShell>
     )
   }
@@ -815,6 +891,12 @@ function App() {
             onOfficial={() =>
               openExternal(
                 selectedMeasure?.source_url
+              )
+            }
+            onFeedback={(vote) =>
+              sendMeasureFeedback(
+                selectedMeasure.id,
+                vote
               )
             }
           />
@@ -1296,6 +1378,16 @@ function ProfileScreen({
             onChange={(value) => update('region', value)}
           />
 
+          <SelectField
+            label="Пол"
+            value={form.gender}
+            options={[
+              { value: 'male', label: 'Мужской' },
+              { value: 'female', label: 'Женский' },
+            ]}
+            onChange={(value) => update('gender', value)}
+          />
+
           <div className="field-grid">
             <Field
               label="Возраст"
@@ -1445,10 +1537,8 @@ function ResultsScreen({
                   onOpen(measure)
                 }
               >
-                <div className="measure-number">
-                  {String(
-                    index + 1
-                  ).padStart(2, '0')}
+                <div className="measure-icon">
+                  {measure.icon || '📌'}
                 </div>
 
                 <div className="measure-copy">
@@ -1567,9 +1657,22 @@ function MeasureScreen({
   onTask,
   onReminder,
   onOfficial,
+  onFeedback,
 }) {
+  const [feedbackSent, setFeedbackSent] = useState(false)
+
+  // Сбрасываем при смене меры
+  useEffect(() => {
+    setFeedbackSent(false)
+  }, [measure?.id])
+
   if (!measure) {
     return null
+  }
+
+  function handleFeedback(vote) {
+    onFeedback?.(vote)
+    setFeedbackSent(true)
   }
 
   const checklist =
@@ -1597,6 +1700,10 @@ function MeasureScreen({
           'support'
             ? 'МЕРА ПОДДЕРЖКИ'
             : 'ШАГ МАРШРУТА'}
+        </div>
+
+        <div className="detail-icon">
+          {measure.icon || '📌'}
         </div>
 
         <h1>
@@ -1704,6 +1811,51 @@ function MeasureScreen({
         </div>
       </div>
 
+      {(measure.authority || measure.steps?.length || measure.deadline) && (
+        <div className="section-block">
+          <div className="section-heading">
+            <div>
+              <span className="muted-label">
+                ДАЛЬШЕ
+              </span>
+              <h2>Куда и что делать</h2>
+            </div>
+          </div>
+
+          {measure.authority && (
+            <div className="authority-card">
+              <div className="authority-icon">📍</div>
+              <div className="authority-body">
+                <strong>Куда подать</strong>
+                <span>{measure.authority}</span>
+              </div>
+            </div>
+          )}
+
+          {measure.steps?.length > 0 && (
+            <div className="steps-card">
+              <div className="steps-title">Пошагово</div>
+              {measure.steps.map((step, i) => (
+                <div key={i} className="step-row">
+                  <span className="step-number">{i + 1}</span>
+                  <span className="step-text">{step}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {measure.deadline && (
+            <div className="deadline-card">
+              <div className="deadline-icon">⏱</div>
+              <div className="deadline-body">
+                <strong>Срок рассмотрения</strong>
+                <span>{measure.deadline}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {measure.missing?.length ? (
         <div className="warning-card">
           <div className="warning-title">
@@ -1798,6 +1950,35 @@ function MeasureScreen({
             Открыть официальный источник
             ↗
           </button>
+        )}
+      </div>
+
+      <div className="feedback-block">
+        {feedbackSent ? (
+          <div className="feedback-thanks">
+            <span className="feedback-thanks-icon">✓</span>
+            <span>Спасибо за отзыв!</span>
+          </div>
+        ) : (
+          <>
+            <div className="feedback-title">
+              Подходит ли вам эта мера?
+            </div>
+            <div className="feedback-buttons">
+              <button
+                className="feedback-button up"
+                onClick={() => handleFeedback(1)}
+              >
+                👍 Подходит
+              </button>
+              <button
+                className="feedback-button down"
+                onClick={() => handleFeedback(-1)}
+              >
+                👎 Не подходит
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -2223,7 +2404,7 @@ function RemindersScreen({
                 </span>
 
                 <span className="reminder-date">
-                  Сработает: {formatDate(reminder.remind_at)}
+                  Придёт: {formatDateTime(reminder.remind_at)}
                 </span>
               </div>
 
@@ -2347,6 +2528,13 @@ function SelectField({
   options,
   onChange,
 }) {
+  // Опции могут быть строками или объектами {value, label}
+  const normalized = (options || []).map((opt) =>
+    typeof opt === 'string'
+      ? { value: opt, label: opt }
+      : opt
+  )
+
   return (
     <label className="field">
       <span>
@@ -2354,7 +2542,7 @@ function SelectField({
       </span>
 
       <select
-        value={value}
+        value={value || ''}
         onChange={(event) =>
           onChange(
             event.target.value
@@ -2365,13 +2553,13 @@ function SelectField({
           Выберите
         </option>
 
-        {options.map(
+        {normalized.map(
           (option) => (
             <option
-              key={option}
-              value={option}
+              key={option.value}
+              value={option.value}
             >
-              {option}
+              {option.label}
             </option>
           )
         )}
@@ -2432,6 +2620,7 @@ function MyProfileScreen({
     phone: profile?.phone || '',
     region: profile?.region || '',
     about: profile?.about || '',
+    gender: profile?.gender || '',
     age: profile?.age || '',
     employment: profile?.employment || '',
     marital_status: profile?.marital_status || '',
@@ -2452,6 +2641,7 @@ function MyProfileScreen({
       phone: profile.phone || '',
       region: profile.region || '',
       about: profile.about || '',
+      gender: profile.gender || '',
       age: profile.age || '',
       employment: profile.employment || '',
       marital_status: profile.marital_status || '',
@@ -2483,6 +2673,7 @@ function MyProfileScreen({
           phone: form.phone || null,
           region: form.region || null,
           about: form.about || null,
+          gender: form.gender || null,
           age: form.age ? Number(form.age) : null,
           employment: form.employment || null,
           marital_status: form.marital_status || null,
@@ -2569,6 +2760,16 @@ function MyProfileScreen({
         <div className="form-section-title">
           Данные для подбора мер
         </div>
+
+        <SelectField
+          label="Пол"
+          value={form.gender}
+          options={[
+            { value: 'male', label: 'Мужской' },
+            { value: 'female', label: 'Женский' },
+          ]}
+          onChange={(v) => update('gender', v)}
+        />
 
         <div className="field-grid">
           <Field
@@ -2692,6 +2893,12 @@ function ChildrenEditor({ children, onChange }) {
         </div>
       )}
 
+      {children.length > 0 && (
+        <div className="children-hint">
+          Возраст — (полных лет)
+        </div>
+      )}
+
       {children.map((child, index) => (
         <div key={index} className="child-row">
           <input
@@ -2707,16 +2914,28 @@ function ChildrenEditor({ children, onChange }) {
             type="number"
             className="child-input child-age"
             placeholder="Возраст"
+            min="0"
+            max="18"
+            step="1"
             value={child.age ?? ''}
-            onChange={(e) =>
-              updateChild(
-                index,
-                'age',
-                e.target.value === ''
-                  ? ''
-                  : Number(e.target.value)
-              )
-            }
+            onChange={(e) => {
+              const raw = e.target.value
+              if (raw === '') {
+                updateChild(index, 'age', '')
+                return
+              }
+              // Только целые числа: отсекаем дробную часть
+              const parsed = parseInt(raw, 10)
+              if (!Number.isNaN(parsed)) {
+                updateChild(index, 'age', parsed)
+              }
+            }}
+            onKeyDown={(e) => {
+              // Запрещаем ввод точки, запятой, минуса, "e"
+              if (['.', ',', '-', 'e', 'E'].includes(e.key)) {
+                e.preventDefault()
+              }
+            }}
           />
           <button
             type="button"
@@ -2906,6 +3125,40 @@ function SavingsBlock({ recommendations, scenario }) {
         Требует подтверждения на пилоте.
       </div>
     </div>
+  )
+}
+
+
+
+function Skeleton({ variant = 'line', count = 1 }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className={`skeleton skeleton-${variant}`}
+        />
+      ))}
+    </>
+  )
+}
+
+function LoadingSkeleton() {
+  return (
+    <section className="content">
+      <div className="skeleton-header">
+        <Skeleton variant="title" />
+        <Skeleton variant="line" count={2} />
+      </div>
+
+      <div className="skeleton-card">
+        <Skeleton variant="line" count={3} />
+      </div>
+
+      <div className="skeleton-card">
+        <Skeleton variant="line" count={4} />
+      </div>
+    </section>
   )
 }
 
