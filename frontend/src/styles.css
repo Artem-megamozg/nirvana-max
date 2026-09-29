@@ -2378,3 +2378,11 @@ button:disabled {
     color: #fcd34d;
   }
 }
+
+.children-hint {
+  font-size: 12px;
+  color: #9a9aa8;
+  margin-top: 8px;
+  padding-left: 4px;
+  line-height: 1.4;
+}

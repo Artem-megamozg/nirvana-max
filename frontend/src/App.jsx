@@ -2754,6 +2754,12 @@ function ChildrenEditor({ children, onChange }) {
         </div>
       )}
 
+      {children.length > 0 && (
+        <div className="children-hint">
+          Возраст — целое число полных лет (например, 5, а не 5.5)
+        </div>
+      )}
+
       {children.map((child, index) => (
         <div key={index} className="child-row">
           <input
@@ -2769,16 +2775,28 @@ function ChildrenEditor({ children, onChange }) {
             type="number"
             className="child-input child-age"
             placeholder="Возраст"
+            min="0"
+            max="18"
+            step="1"
             value={child.age ?? ''}
-            onChange={(e) =>
-              updateChild(
-                index,
-                'age',
-                e.target.value === ''
-                  ? ''
-                  : Number(e.target.value)
-              )
-            }
+            onChange={(e) => {
+              const raw = e.target.value
+              if (raw === '') {
+                updateChild(index, 'age', '')
+                return
+              }
+              // Только целые числа: отсекаем дробную часть
+              const parsed = parseInt(raw, 10)
+              if (!Number.isNaN(parsed)) {
+                updateChild(index, 'age', parsed)
+              }
+            }}
+            onKeyDown={(e) => {
+              // Запрещаем ввод точки, запятой, минуса, "e"
+              if (['.', ',', '-', 'e', 'E'].includes(e.key)) {
+                e.preventDefault()
+              }
+            }}
           />
           <button
             type="button"

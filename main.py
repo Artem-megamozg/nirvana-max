@@ -67,7 +67,18 @@ reminder_worker_task = None
 
 class Child(BaseModel):
     name: str = ""
-    age: int | None = None
+    age: int | float | str | None = None
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def _normalize_age(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            # Приводим к целому числу
+            return int(float(v))
+        except (ValueError, TypeError):
+            return None
 
 
 class ProfileRequest(BaseModel):
