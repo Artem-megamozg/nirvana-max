@@ -630,11 +630,6 @@ function App() {
   async function sendMeasureFeedback(measureId, vote) {
     try {
       await sendFeedback(measureId, vote, userId)
-      showToast(
-        vote === 1
-          ? 'Спасибо! Рады, что подошло'
-          : 'Спасибо! Учтём ваш отзыв'
-      )
       haptic('success')
     } catch (err) {
       showToast('Не удалось отправить отзыв', 'error')
@@ -1664,8 +1659,20 @@ function MeasureScreen({
   onOfficial,
   onFeedback,
 }) {
+  const [feedbackSent, setFeedbackSent] = useState(false)
+
+  // Сбрасываем при смене меры
+  useEffect(() => {
+    setFeedbackSent(false)
+  }, [measure?.id])
+
   if (!measure) {
     return null
+  }
+
+  function handleFeedback(vote) {
+    onFeedback?.(vote)
+    setFeedbackSent(true)
   }
 
   const checklist =
@@ -1947,23 +1954,32 @@ function MeasureScreen({
       </div>
 
       <div className="feedback-block">
-        <div className="feedback-title">
-          Подходит ли вам эта мера?
-        </div>
-        <div className="feedback-buttons">
-          <button
-            className="feedback-button up"
-            onClick={() => onFeedback?.(1)}
-          >
-            👍 Подходит
-          </button>
-          <button
-            className="feedback-button down"
-            onClick={() => onFeedback?.(-1)}
-          >
-            👎 Не подходит
-          </button>
-        </div>
+        {feedbackSent ? (
+          <div className="feedback-thanks">
+            <span className="feedback-thanks-icon">✓</span>
+            <span>Спасибо за отзыв!</span>
+          </div>
+        ) : (
+          <>
+            <div className="feedback-title">
+              Подходит ли вам эта мера?
+            </div>
+            <div className="feedback-buttons">
+              <button
+                className="feedback-button up"
+                onClick={() => handleFeedback(1)}
+              >
+                👍 Подходит
+              </button>
+              <button
+                className="feedback-button down"
+                onClick={() => handleFeedback(-1)}
+              >
+                👎 Не подходит
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="source-card">
