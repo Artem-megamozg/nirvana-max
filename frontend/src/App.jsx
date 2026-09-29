@@ -6,6 +6,8 @@ import {
 } from 'react'
 
 import { REGIONS } from './data/regions'
+import { Icon } from './components/Icon'
+import { ChatWidget } from './components/ChatWidget'
 
 import {
   completeTask,
@@ -1015,6 +1017,8 @@ function App() {
           />
         )}
 
+        <ChatWidget />
+
         <BottomNav
           screen={screen}
           onHome={goHome}
@@ -1056,13 +1060,6 @@ function Header({
   maxUser,
   onHome,
 }) {
-  const firstName = maxUser?.first_name || ''
-  const lastName = maxUser?.last_name || ''
-  const initial = (firstName[0] || 'N').toUpperCase()
-  const displayName = firstName
-    ? `${firstName}${lastName ? ' ' + lastName : ''}`
-    : 'Гость'
-
   return (
     <header className="topbar">
       <button
@@ -1076,14 +1073,6 @@ function Header({
           <span className="brand-tagline">маршрут помощи</span>
         </span>
       </button>
-
-      <div className="who">
-        <span className="who-initial" aria-hidden="true">
-          {initial}
-        </span>
-        <span className="who-rule" aria-hidden="true" />
-        <span className="who-name">{displayName}</span>
-      </div>
     </header>
   )
 }
@@ -1178,8 +1167,6 @@ function HomeScreen({
   return (
     <section className="content">
       <div className="hero">
-        <div className="hero-glow" />
-
         <div className="eyebrow">
           ПЕРСОНАЛЬНЫЙ ПОМОЩНИК
         </div>
@@ -1203,7 +1190,7 @@ function HomeScreen({
           onClick={onStart}
         >
           Начать проверку
-          <span>→</span>
+          <span><Icon name="chevronRight" size={16} /></span>
         </button>
       </div>
 
@@ -1238,7 +1225,7 @@ function HomeScreen({
 
           <div className="card-footer">
             Дополнить профиль
-            <span>→</span>
+            <span><Icon name="chevronRight" size={16} /></span>
           </div>
         </button>
       ) : null}
@@ -1259,7 +1246,7 @@ function HomeScreen({
             className="text-button"
             onClick={onStart}
           >
-            Все →
+            Все <Icon name="chevronRight" size={14} />
           </button>
         </div>
 
@@ -1272,7 +1259,7 @@ function HomeScreen({
                 onClick={() => onSelectScenario(scenario)}
               >
                 <span className="scenario-icon">
-                  {scenario.icon}
+                  <Icon name={scenario.icon} size={22} />
                 </span>
 
                 <span className="scenario-title">
@@ -1280,7 +1267,7 @@ function HomeScreen({
                 </span>
 
                 <span className="scenario-arrow">
-                  →
+                  <Icon name="chevronRight" size={18} />
                 </span>
               </button>
             )
@@ -1292,7 +1279,7 @@ function HomeScreen({
         <div className="home-status">
           {pendingTasks.length > 0 && (
             <span className="status-chip">
-              ✓ {pendingTasks.length}{' '}
+              <Icon name="check" size={14} /> {pendingTasks.length}{' '}
               {pendingTasks.length === 1
                 ? 'задача'
                 : 'задач'}{' '}
@@ -1344,7 +1331,7 @@ function ScenarioScreen({
               }
             >
               <span className="big-scenario-icon">
-                {scenario.icon}
+                <Icon name={scenario.icon} size={26} />
               </span>
 
               <span className="big-scenario-copy">
@@ -1358,7 +1345,7 @@ function ScenarioScreen({
               </span>
 
               <span className="big-scenario-arrow">
-                →
+                <Icon name="chevronRight" size={20} />
               </span>
             </button>
           )
@@ -1421,7 +1408,7 @@ function ProfileScreen({
         <span className="eyebrow">ШАГ 2</span>
 
         <div className="selected-scenario">
-          <span>{scenario?.icon}</span>
+          <Icon name={scenario?.icon} size={16} />
           {scenario?.title}
         </div>
 
@@ -1442,7 +1429,7 @@ function ProfileScreen({
         <div className="profile-summary-card">
           {summary.map((row) => (
             <div key={row.key} className="summary-row">
-              <span className="summary-check">✓</span>
+              <span className="summary-check"><Icon name="check" size={14} /></span>
               <span className="summary-label">{row.label}:</span>
               <span className="summary-value">{row.value}</span>
             </div>
@@ -1450,7 +1437,7 @@ function ProfileScreen({
 
           {family && hasChildren && (
             <div className="summary-row">
-              <span className="summary-check">✓</span>
+              <span className="summary-check"><Icon name="check" size={14} /></span>
               <span className="summary-label">Дети:</span>
               <span className="summary-value">
                 {(form.children || []).length}{' '}
@@ -1463,7 +1450,7 @@ function ProfileScreen({
             className="link-button full"
             onClick={onOpenFullProfile}
           >
-            Что-то изменить →
+            Что-то изменить <Icon name="chevronRight" size={14} />
           </button>
         </div>
       )}
@@ -1533,7 +1520,7 @@ function ProfileScreen({
 
           {medical && (
             <div className="medical-disclaimer">
-              <div className="medical-disclaimer-icon">⚠️</div>
+              <div className="medical-disclaimer-icon"><Icon name="warning" size={20} /></div>
               <div className="medical-disclaimer-body">
                 <strong>Nirvana не заменяет врача</strong>
                 <p>
@@ -1559,7 +1546,7 @@ function ProfileScreen({
           : wasComplete
             ? 'Всё верно, строить маршрут'
             : 'Продолжить'}
-        {!loading && <span>→</span>}
+        {!loading && <span><Icon name="chevronRight" size={16} /></span>}
       </button>
     </section>
   )
@@ -1578,7 +1565,7 @@ function ResultsScreen({
     <section className="content">
       {scenario?.id === 'medical' && (
         <div className="medical-disclaimer compact">
-          <div className="medical-disclaimer-icon">⚠️</div>
+          <div className="medical-disclaimer-icon"><Icon name="warning" size={20} /></div>
           <div className="medical-disclaimer-body">
             <strong>Только административный маршрут</strong>
             <p>
@@ -1591,7 +1578,7 @@ function ResultsScreen({
 
       <div className="result-hero">
         <div className="success-icon">
-          ✓
+          <Icon name="check" size={28} />
         </div>
 
         <div>
@@ -1635,7 +1622,7 @@ function ResultsScreen({
                 }
               >
                 <div className="measure-icon">
-                  {measure.icon || '📌'}
+                  <Icon name={measure.icon} size={22} />
                 </div>
 
                 <div className="measure-copy">
@@ -1661,12 +1648,12 @@ function ResultsScreen({
                   </span>
 
                   <small>
-                    Почему подходит →
+                    Почему подходит <Icon name="chevronRight" size={12} />
                   </small>
                 </div>
 
                 <div className="measure-arrow">
-                  →
+                  <Icon name="chevronRight" size={18} />
                 </div>
               </button>
             )
@@ -1738,7 +1725,7 @@ function ResultsScreen({
         </div>
 
         <span>
-          →
+          <Icon name="chevronRight" size={16} />
         </span>
       </button>
     </section>
@@ -1800,7 +1787,7 @@ function MeasureScreen({
         </div>
 
         <div className="detail-icon">
-          {measure.icon || '📌'}
+          <Icon name={measure.icon} size={30} />
         </div>
 
         <h1>
@@ -1838,7 +1825,7 @@ function MeasureScreen({
                   className="bullet-row success"
                   style={{ color: '#1a1a1a' }}
                 >
-                  <span style={{ color: '#22c55e' }}>✓</span>
+                  <span className="reason-check"><Icon name="check" size={14} /></span>
                   {reason}
                 </div>
               )
@@ -1894,9 +1881,7 @@ function MeasureScreen({
                 }
               >
                 <span className="check-circle">
-                  {item.completed
-                    ? '✓'
-                    : ''}
+                  {item.completed ? <Icon name="check" size={14} /> : null}
                 </span>
 
                 <span>
@@ -1921,7 +1906,7 @@ function MeasureScreen({
 
           {measure.authority && (
             <div className="authority-card">
-              <div className="authority-icon">📍</div>
+              <div className="authority-icon"><Icon name="pin" size={20} /></div>
               <div className="authority-body">
                 <strong>Куда подать</strong>
                 <span>{measure.authority}</span>
@@ -1965,7 +1950,7 @@ function MeasureScreen({
                 key={item}
                 className="warning-row"
               >
-                ⚠ {item}
+                <Icon name="warning" size={15} /> {item}
               </div>
             )
           )}
@@ -2005,7 +1990,7 @@ function MeasureScreen({
       <div className="action-stack">
         {measure.in_route ? (
           <div className="in-route-badge">
-            <span className="in-route-icon">✓</span>
+            <span className="in-route-icon"><Icon name="check" size={16} /></span>
             <div className="in-route-text">
               <strong>Уже в маршруте</strong>
               <span>Задача создана — откройте раздел «Маршрут»</span>
@@ -2018,7 +2003,7 @@ function MeasureScreen({
             disabled={loading}
           >
             Добавить в мой маршрут
-            <span>→</span>
+            <span><Icon name="chevronRight" size={16} /></span>
           </button>
         )}
 
@@ -2055,7 +2040,7 @@ function MeasureScreen({
             onClick={onOfficial}
           >
             Открыть официальный источник
-            ↗
+            <Icon name="external" size={14} />
           </button>
         )}
       </div>
@@ -2063,7 +2048,7 @@ function MeasureScreen({
       <div className="feedback-block">
         {feedbackSent ? (
           <div className="feedback-thanks">
-            <span className="feedback-thanks-icon">✓</span>
+            <span className="feedback-thanks-icon"><Icon name="checkCircle" size={18} /></span>
             <span>Спасибо за отзыв!</span>
           </div>
         ) : (
@@ -2076,13 +2061,13 @@ function MeasureScreen({
                 className="feedback-button up"
                 onClick={() => handleFeedback(1)}
               >
-                👍 Подходит
+                <Icon name="thumbsUp" size={16} /> Подходит
               </button>
               <button
                 className="feedback-button down"
                 onClick={() => handleFeedback(-1)}
               >
-                👎 Не подходит
+                <Icon name="thumbsDown" size={16} /> Не подходит
               </button>
             </div>
           </>
@@ -2108,7 +2093,8 @@ function MeasureScreen({
               className="source-link"
               onClick={() => openExternal(measure.source_url)}
             >
-              {measure.source_url.replace(/^https?:\/\//, '').split('/')[0]} ↗
+              {measure.source_url.replace(/^https?:\/\//, '').split('/')[0]}
+              <Icon name="external" size={12} />
             </button>
           </div>
         )}
@@ -2227,7 +2213,7 @@ function RouteScreen({
                       )
                     }
                   >
-                    ✓
+                    <Icon name="check" size={16} />
                   </button>
                 </div>
 
@@ -2260,7 +2246,7 @@ function RouteScreen({
                         onComplete(task.id)
                       }
                     >
-                      ✓ Завершить
+                      <Icon name="check" size={14} /> Завершить
                     </button>
 
                     <button
@@ -2295,7 +2281,7 @@ function RouteScreen({
       ) : (
         <div className="empty-card done">
           <div className="empty-icon success">
-            ✓
+            <Icon name="checkCircle" size={32} />
           </div>
 
           <h3>
@@ -2349,7 +2335,7 @@ function RouteScreen({
                 className="task-card completed"
               >
                 <div className="task-check">
-                  <span className="check-done">✓</span>
+                  <span className="check-done"><Icon name="check" size={14} /></span>
                 </div>
 
                 <div className="task-content">
@@ -2411,7 +2397,7 @@ function RouteScreen({
                   className="history-row"
                 >
                   <span>
-                    ✓
+                    <Icon name="check" size={14} />
                   </span>
 
                   <div>
@@ -2551,25 +2537,25 @@ function BottomNav({
   const items = [
     {
       id: SCREENS.HOME,
-      icon: '⌂',
+      icon: 'home',
       title: 'Главная',
       onClick: onHome,
     },
     {
       id: SCREENS.ROUTE,
-      icon: '✓',
+      icon: 'route',
       title: 'Маршрут',
       onClick: onRoute,
     },
     {
       id: SCREENS.REMINDERS,
-      icon: '◷',
+      icon: 'clock',
       title: 'Напоминания',
       onClick: onReminders,
     },
     {
       id: SCREENS.MY_PROFILE,
-      icon: '◇',
+      icon: 'user',
       title: 'Профиль',
       onClick: onProfile,
     },
@@ -2588,7 +2574,7 @@ function BottomNav({
           onClick={item.onClick}
         >
           <span>
-            {item.icon}
+            <Icon name={item.icon} size={20} />
           </span>
 
           <small>
@@ -2943,7 +2929,7 @@ function MyProfileScreen({
         className="link-button full"
         onClick={onBack}
       >
-        ← На главную
+        <Icon name="chevronLeft" size={14} /> На главную
       </button>
 
       <button
@@ -3084,7 +3070,10 @@ function Toast({ message, type = 'success', onClose }) {
   return (
     <div className={`toast toast-${type}`}>
       <span className="toast-icon">
-        {type === 'success' ? '✓' : type === 'error' ? '!' : 'i'}
+        <Icon
+          name={type === 'success' ? 'checkCircle' : type === 'error' ? 'warning' : 'info'}
+          size={16}
+        />
       </span>
       <span className="toast-text">{message}</span>
     </div>
@@ -3221,7 +3210,7 @@ function SavingsBlock({ recommendations, scenario }) {
         </div>
 
         <div className="savings-row">
-          <span className="savings-icon">📋</span>
+          <span className="savings-icon"><Icon name="documents" size={20} /></span>
           <div>
             <strong>{savedTrips} обращения в ведомства</strong>
             <span>
@@ -3231,7 +3220,7 @@ function SavingsBlock({ recommendations, scenario }) {
         </div>
 
         <div className="savings-row">
-          <span className="savings-icon">🎯</span>
+          <span className="savings-icon"><Icon name="target" size={20} /></span>
           <div>
             <strong>{count} {count === 1 ? 'мера' : 'мер'} в маршруте</strong>
             <span>
@@ -3301,7 +3290,7 @@ function ConsentScreen({ onAccept }) {
 
   return (
     <section className="content consent-screen">
-      <div className="consent-icon">🔒</div>
+      <div className="consent-icon"><Icon name="lock" size={26} /></div>
 
       <h1>Добро пожаловать в Nirvana</h1>
 
