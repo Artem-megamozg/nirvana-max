@@ -110,6 +110,8 @@ def init_db():
         ("full_name", "TEXT"),
         ("phone", "TEXT"),
         ("about", "TEXT"),
+        ("gender", "TEXT"),
+        ("consent_given_at", "TEXT"),
     ]
     for col, typ in migrations:
         if col not in existing:
