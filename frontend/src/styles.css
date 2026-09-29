@@ -2386,3 +2386,11 @@ button:disabled {
   padding-left: 4px;
   line-height: 1.4;
 }
+
+/* Дата и время напоминания */
+.reminder-date {
+  font-size: 12px;
+  color: #6b6b7b;
+  margin-top: 2px;
+  font-weight: 500;
+}

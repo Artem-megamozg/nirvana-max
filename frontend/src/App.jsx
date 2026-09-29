@@ -92,6 +92,25 @@ function formatDate(value) {
   })
 }
 
+function formatDateTime(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const datePart = date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  const timePart = date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `${datePart}, ${timePart}`
+}
+
+
 function reminderIso(hours = 24) {
   return new Date(
     Date.now() + hours * 60 * 60 * 1000
@@ -2299,7 +2318,7 @@ function RemindersScreen({
                 </span>
 
                 <span className="reminder-date">
-                  Сработает: {formatDate(reminder.remind_at)}
+                  Придёт: {formatDateTime(reminder.remind_at)}
                 </span>
               </div>
 
