@@ -44,6 +44,7 @@ const emptyProfile = {
   employment: '',
   marital_status: '',
   income: '',
+  gender: '',
   children: [],
   statuses: [],
 }
@@ -359,6 +360,7 @@ function App() {
         employment: profile.employment || '',
         marital_status: profile.marital_status || '',
         income: profile.income || '',
+        gender: profile.gender || '',
         children:
           profile.children?.length
             ? profile.children
@@ -408,6 +410,8 @@ function App() {
         user_id: userId,
         region:
           profileForm.region.trim(),
+        gender:
+          profileForm.gender || null,
         age:
           Number(profileForm.age),
         employment:
@@ -1356,6 +1360,16 @@ function ProfileScreen({
           <RegionAutocomplete
             value={form.region}
             onChange={(value) => update('region', value)}
+          />
+
+          <SelectField
+            label="Пол"
+            value={form.gender}
+            options={[
+              { value: 'male', label: 'Мужской' },
+              { value: 'female', label: 'Женский' },
+            ]}
+            onChange={(value) => update('gender', value)}
           />
 
           <div className="field-grid">
@@ -2494,6 +2508,7 @@ function MyProfileScreen({
     phone: profile?.phone || '',
     region: profile?.region || '',
     about: profile?.about || '',
+    gender: profile?.gender || '',
     age: profile?.age || '',
     employment: profile?.employment || '',
     marital_status: profile?.marital_status || '',
@@ -2514,6 +2529,7 @@ function MyProfileScreen({
       phone: profile.phone || '',
       region: profile.region || '',
       about: profile.about || '',
+      gender: profile.gender || '',
       age: profile.age || '',
       employment: profile.employment || '',
       marital_status: profile.marital_status || '',
@@ -2545,6 +2561,7 @@ function MyProfileScreen({
           phone: form.phone || null,
           region: form.region || null,
           about: form.about || null,
+          gender: form.gender || null,
           age: form.age ? Number(form.age) : null,
           employment: form.employment || null,
           marital_status: form.marital_status || null,
@@ -2631,6 +2648,16 @@ function MyProfileScreen({
         <div className="form-section-title">
           Данные для подбора мер
         </div>
+
+        <SelectField
+          label="Пол"
+          value={form.gender}
+          options={[
+            { value: 'male', label: 'Мужской' },
+            { value: 'female', label: 'Женский' },
+          ]}
+          onChange={(v) => update('gender', v)}
+        />
 
         <div className="field-grid">
           <Field
@@ -2756,7 +2783,7 @@ function ChildrenEditor({ children, onChange }) {
 
       {children.length > 0 && (
         <div className="children-hint">
-          Возраст — целое число полных лет (например, 5, а не 5.5)
+          Возраст — (полных лет)
         </div>
       )}
 

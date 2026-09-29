@@ -177,12 +177,12 @@ def upsert_profile(user_id: str, data: dict[str, Any]):
         INSERT INTO profiles (
             user_id, region, age, employment, marital_status, income,
             children_count, children_ages, children, statuses, scenario_id,
-            scenario_specific, full_name, phone, about, updated_at
+            scenario_specific, full_name, phone, about, gender, updated_at
         )
         VALUES (
             :user_id, :region, :age, :employment, :marital_status, :income,
             :children_count, :children_ages, :children, :statuses, :scenario_id,
-            :scenario_specific, :full_name, :phone, :about, :updated_at
+            :scenario_specific, :full_name, :phone, :about, :gender, :updated_at
         )
         ON CONFLICT(user_id) DO UPDATE SET
             region = excluded.region,
@@ -199,6 +199,7 @@ def upsert_profile(user_id: str, data: dict[str, Any]):
             full_name = excluded.full_name,
             phone = excluded.phone,
             about = excluded.about,
+            gender = excluded.gender,
             updated_at = excluded.updated_at
         """,
         payload,

@@ -1135,10 +1135,10 @@
       "priority": 2,
       "rules": [
         {
-          "field": "pregnant",
+          "field": "gender",
           "op": "==",
-          "value": true,
-          "reason": "Вы указали беременность"
+          "value": "female",
+          "reason": "Только для женщин"
         }
       ],
       "missing": [],
@@ -1191,10 +1191,10 @@
       "priority": 3,
       "rules": [
         {
-          "field": "pregnant",
+          "field": "gender",
           "op": "==",
-          "value": true,
-          "reason": "Вы указали беременность"
+          "value": "female",
+          "reason": "Только для женщин"
         }
       ],
       "missing": [],
@@ -1587,10 +1587,10 @@
       "priority": 2,
       "rules": [
         {
-          "field": "pregnant",
+          "field": "gender",
           "op": "==",
-          "value": true,
-          "reason": "Вы указали беременность"
+          "value": "female",
+          "reason": "Только для женщин"
         }
       ],
       "missing": []
@@ -1722,6 +1722,12 @@
       "data_status": "model",
       "priority": 2,
       "rules": [
+        {
+          "field": "gender",
+          "op": "==",
+          "value": "male",
+          "reason": "Отсрочка для мужчин"
+        },
         {
           "field": "employment",
           "op": "in",
